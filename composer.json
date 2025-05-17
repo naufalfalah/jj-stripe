@@ -21,7 +21,7 @@
         "maatwebsite/excel": "^3.1",
         "openai-php/laravel": "^0.10.2",
         "spatie/browsershot": "^4.1",
-        "stripe/stripe-php": "^15.3",
+        "stripe/stripe-php": "^17.2",
         "tymon/jwt-auth": "^2.1",
         "yajra/laravel-datatables": "^9.0"
     },

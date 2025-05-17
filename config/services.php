@@ -75,4 +75,9 @@ return [
         'default_voice_id' => env('ELEVENLABS_DEFAULT_VOICE_ID'),
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+    ],
+    
 ];

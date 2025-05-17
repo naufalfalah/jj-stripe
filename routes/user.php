@@ -16,6 +16,7 @@ use App\Http\Controllers\Frontend\MessageTemplateController;
 use App\Http\Controllers\Frontend\PackageController;
 use App\Http\Controllers\Frontend\PageController;
 use App\Http\Controllers\Frontend\PayNowPaymentController;
+use App\Http\Controllers\Frontend\StripeController;
 use App\Http\Controllers\Frontend\StripePaymentController;
 use App\Http\Controllers\Frontend\UserMessageTemplateController;
 use App\Http\Controllers\Frontend\WalletController;
@@ -285,5 +286,11 @@ Route::middleware(['client', 'XSS'])
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'sendMessage')->name('sendMessage');
+            });
+            
+        Route::controller(StripeController::class)
+            ->group(function () {
+                Route::post('/stripe/customer', 'createCustomer');
+                Route::post('/stripe/payment-intent', 'createPaymentIntent');
             });
     });
