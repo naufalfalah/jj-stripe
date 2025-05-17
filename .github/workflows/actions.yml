@@ -1,0 +1,60 @@
+name: Round Robin GitHub Actions
+
+on:
+  push:
+    branches:
+      - development
+      - staging
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  linting:
+    name: Lint Code and Generate API Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up PHP
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        tools: composer
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    # Step 4: Run Laravel Pint
+    - name: Run Laravel Pint
+      run: vendor/bin/pint
+    # Optional: Add auto-fix command if you want GitHub Actions to commit fixes
+    # Uncomment the next lines to enable auto-fix
+    # - name: Fix code style issues
+    #   run: vendor/bin/pint
+    # - name: Commit fixed code
+    #   run: |
+    #     git config --global user.name "GitHub Actions"
+    #     git config --global user.email "actions@github.com"
+    #     git add .
+    #     git commit -m "Reformat: Laravel pint fixes"
+
+    # Step 5: Generate API Documentation
+    - name: Generate API Documentation
+      run: php artisan scribe:generate
+
+    # Step 6: Commit generated documentation (optional)
+    - name: Commit generated API documentation
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add public/docs
+        git commit -m "Update API documentation"
+        git push

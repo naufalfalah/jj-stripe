@@ -1,0 +1,20 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "array_syntax": {
+            "syntax": "short"
+        },
+        "single_quote": true,
+        "not_operator_with_successor_space": false,
+        "phpdoc_align": {
+            "align": "left",
+            "spacing": 1
+        }
+    },
+    "exclude": [
+        "config"
+    ],
+    "notName": [
+        "server.php"
+    ]
+}

@@ -1,0 +1,1 @@
+<a href="{{ route('user.page.page_details',$data->hashid) }}">{{ $data->title }}</a>
