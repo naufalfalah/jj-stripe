@@ -37,6 +37,16 @@ Route::prefix('client')
                 Route::get('/file/{id}/{client_id}', 'client_file_view')->name('client.file_view');
                 Route::get('/file-view/{id}', 'file_view')->name('file_view');
             });
+            
+        Route::controller(StripeController::class)
+            ->prefix('stripe')
+            ->as('stripe.')
+            ->group(function () {
+                Route::post('/customer', 'createCustomer');
+                Route::post('/payment-intent', 'createPaymentIntent');
+                Route::post('/subscription', 'createSubscription');
+                Route::post('/subscription/cancel', 'cancelSubscription');
+            });
     });
 
 Route::middleware(['client', 'XSS'])
@@ -286,15 +296,5 @@ Route::middleware(['client', 'XSS'])
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::post('/', 'sendMessage')->name('sendMessage');
-            });
-            
-        Route::controller(StripeController::class)
-            ->prefix('stripe')
-            ->as('stripe.')
-            ->group(function () {
-                Route::post('/customer', 'createCustomer');
-                Route::post('/payment-intent', 'createPaymentIntent');
-                Route::post('/subscription', 'createSubscription');
-                Route::post('/subscription/cancel', 'cancelSubscription');
             });
     });

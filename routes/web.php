@@ -223,19 +223,6 @@ Route::middleware(['admin'])->group(function () {
                 });
                 // Assign Task
 
-                // ebook start
-                Route::controller('EbookController')->group(function () {
-                    Route::prefix('ebook')->as('ebook.')->group(function () {
-                        Route::get('/add', 'add_ebook')->name('add');
-                        Route::get('/all', 'index')->name('all');
-                        Route::post('/save', 'save_ebook')->name('save');
-                        Route::get('/edit/{id}', 'edit')->name('edit');
-                        Route::get('/delete/{id}', 'delete')->name('delete');
-                        Route::get('/details/{id}', 'details')->name('details');
-                    });
-                });
-                // ebook end
-
                 Route::controller('AgencyController')->group(function () {
                     Route::prefix('agency')->as('agency.')->group(function () {
                         Route::get('/', 'index')->name('all');
@@ -636,10 +623,6 @@ Route::namespace('App\Http\Controllers\Frontend')->group(function () {
         });
     });
 });
-
-// open route for file view of ebook
-Route::get('/ebook_file_view/{slug}/{id}', [App\Http\Controllers\Administrator\EbookController::class, 'file_view'])->name('ebook_file_view');
-// open route for file view of ebook
 
 require __DIR__.'/admin.php';
 require __DIR__.'/user.php';

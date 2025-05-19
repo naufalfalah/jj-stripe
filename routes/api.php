@@ -9,7 +9,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\CloudTalkController;
 use App\Http\Controllers\Api\ContentWritingController;
-use App\Http\Controllers\Api\EbookController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\FetchLeadsController;
 use App\Http\Controllers\Api\FileController;
@@ -280,15 +279,6 @@ Route::middleware(['api', 'XSS'])
                 Route::post('/restart', 'restart')->name('restart');
             });
 
-        Route::controller(EbookController::class)
-            ->middleware('auth:api')
-            ->prefix('ebook')
-            ->as('ebook.')
-            ->group(function () {
-                Route::get('/all_ebooks', 'all_ebooks')->name('all_ebooks');
-                Route::get('/file-view/{id}', 'file_view')->name('file_view');
-            });
-
         Route::controller(FetchLeadsController::class)
             ->group(function () {
                 Route::prefix('webhook')
@@ -459,5 +449,15 @@ Route::middleware(['api', 'XSS'])
             ->group(function () {
                 Route::post('/generate/from-scratch', 'generateFromScratch')->name('generateFromScratch');
                 Route::post('/generate/blog-post', 'generateBlogPost')->name('generateBlogPost');
+            });
+            
+        Route::controller(StripeController::class)
+            ->prefix('stripe')
+            ->as('stripe.')
+            ->group(function () {
+                Route::post('/customer', 'createCustomer');
+                Route::post('/payment-intent', 'createPaymentIntent');
+                Route::post('/subscription', 'createSubscription');
+                Route::post('/subscription/cancel', 'cancelSubscription');
             });
     });

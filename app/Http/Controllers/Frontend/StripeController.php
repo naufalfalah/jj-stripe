@@ -17,6 +17,11 @@ class StripeController extends Controller
 
     public function createCustomer(Request $request)
     {
+        $request->validate([
+            'email' => 'required|email',
+            'name' => 'required|string',
+        ]);
+
         $customer = $this->stripeService->createCustomer($request->email, $request->name);
 
         return response()->json($customer);
@@ -24,6 +29,12 @@ class StripeController extends Controller
 
     public function createPaymentIntent(Request $request)
     {
+        $request->validate([
+            'amount' => 'required|integer',
+            'currency' => 'required|string',
+            'customer_id' => 'nullable|string',
+        ]);
+
         $paymentIntent = $this->stripeService->createPaymentIntent($request->amount, $request->currency, $request->customer_id);
 
         return response()->json($paymentIntent);

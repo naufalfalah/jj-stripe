@@ -57,15 +57,6 @@ Route::middleware(['admin', 'XSS'])
                 Route::post('/set_token', 'save_device_token')->name('save_device_token');
             });
 
-        // form chat
-        Route::prefix('form-chat')
-            ->group(function () {
-                Route::get('/users/{formTaskId}', 'FormChatController@user')->name('get_user_form.admin');
-                Route::get('/user-messages/{formTaskId}/{id}/{userType}', 'ChatController@message')->name('get_form_messages.admin');
-                Route::get('/user-message-from/{formTaskId}/{id}/{userType}', 'ChatController@getUserFrom')->name('form_get_message_from.admin');
-                Route::post('/user-messages-task', 'FormChatController@send')->name('task_send_message_from.admin');
-            });
-
         Route::controller(MessageTemplateController::class)
             ->prefix('message_template')
             ->as('message_template.')
@@ -259,20 +250,6 @@ Route::middleware(['admin', 'XSS'])
                 Route::get('/designer_image_delete/{id}', 'designer_image_delete')->name('designer_image_delete');
             });
         // Assign Task
-
-        // ebook start
-        Route::controller('EbookController')
-            ->prefix('ebook')
-            ->as('ebook.')
-            ->group(function () {
-                Route::get('/add', 'add_ebook')->name('add');
-                Route::get('/all', 'index')->name('all');
-                Route::post('/save', 'save_ebook')->name('save');
-                Route::get('/edit/{id}', 'edit')->name('edit');
-                Route::get('/delete/{id}', 'delete')->name('delete');
-                Route::get('/details/{id}', 'details')->name('details');
-            });
-        // ebook end
 
         Route::controller(AgencyController::class)
             ->prefix('agency')
