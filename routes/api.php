@@ -456,8 +456,45 @@ Route::middleware(['api', 'XSS'])
             ->as('stripe.')
             ->group(function () {
                 Route::post('/customer', 'createCustomer');
+                Route::get('/customer', 'getCustomers');
+                Route::get('/customer/{customerId}', 'getCustomer');
+                Route::put('/customer/{customerId}', 'updateCustomer');
+                Route::delete('/customer/{customerId}', 'deleteCustomer');
+
+                Route::post('/subscription', 'createCustomerSubscription');
+                Route::get('/subscription', 'getCustomerSubscriptions');
+                Route::get('/subscription/{subscriptionId}', 'getCustomerSubscription');
+                Route::put('/subscription/{subscriptionId}', 'updateCustomerSubscription');
+                Route::delete('/subscription/{subscriptionId}', 'cancelCustomerSubscription');
+
                 Route::post('/payment-intent', 'createPaymentIntent');
-                Route::post('/subscription', 'createSubscription');
-                Route::post('/subscription/cancel', 'cancelSubscription');
+                Route::get('/payment-intent', 'getPaymentIntents');
+                Route::get('/payment-intent/{paymentIntentId}', 'getPaymentIntent');
+                Route::put('/payment-intent/{paymentIntentId}', 'updatePaymentIntent');
+                Route::delete('/payment-intent/{paymentIntentId}', 'cancelPaymentIntent');
+
+                Route::post('/payment-method', 'createPaymentMethod');
+                Route::get('/payment-method', 'getPaymentMethods');
+                Route::get('/payment-method/{paymentMethodId}', 'getPaymentMethod');
+                Route::put('/payment-method/{paymentMethodId}', 'updatePaymentMethod');
+                Route::delete('/payment-method/{paymentMethodId}', 'deletePaymentMethod');
+
+                Route::post('/invoice', 'createInvoice');
+                Route::get('/invoice', 'getInvoices');
+                Route::get('/invoice/{invoiceId}', 'getInvoice');
+                Route::put('/invoice/{invoiceId}', 'updateInvoice');
+                Route::delete('/invoice/{invoiceId}', 'deleteInvoice');
+
+                Route::post('/product', 'createProduct');
+                Route::get('/product', 'getProducts');
+                Route::get('/product/{productId}', 'getProduct');
+                Route::put('/product/{productId}', 'updateProduct');
+                Route::delete('/product/{productId}', 'deleteProduct');
+
+                Route::post('/price', 'createPrice');
+                Route::get('/price', 'getPrices');
+                Route::get('/price/{priceId}', 'getPrice');
+                Route::put('/price/{priceId}', 'updatePrice');
+                Route::delete('/price/{priceId}', 'deletePrice');
             });
     });
