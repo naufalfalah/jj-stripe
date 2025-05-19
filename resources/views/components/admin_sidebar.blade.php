@@ -397,30 +397,6 @@
             </li>
         @endif
 
-
-        @if ($auth_user->user_type == 'admin' && $auth_user->role_name == 'super_admin')
-            <li>
-
-                <a href="javascript:voud(0);" class="has-arrow">
-                    <div class="parent-icon"><i class="fa-solid fa-book"></i>
-                    </div>
-                    <div class="menu-title">EBook</div>
-                </a>
-                <ul>
-                    @if ($auth_user->can('designer-read'))
-                        <li> <a href="{{ route('admin.ebook.all') }}"><i class="fa-solid fa-circle"></i>All
-                            </a></li>
-                    @endif
-
-                    @if ($auth_user->can('designer-read'))
-                        <li> <a href="{{ route('admin.ebook.add') }}"><i class="fa-solid fa-circle"></i>
-                                Add</a></li>
-                    @endif
-
-                </ul>
-            </li>
-        @endif
-
     </ul>
     <!--end navigation-->
 </aside>

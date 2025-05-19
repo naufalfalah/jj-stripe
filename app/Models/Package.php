@@ -15,6 +15,10 @@ class Package extends Model
         'description',
         'price',
         'url',
+        'logo',
+        'duration',
+        'status',
+        'stripe_product_id',
     ];
 
     public function sub_account()
