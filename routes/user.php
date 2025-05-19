@@ -289,8 +289,12 @@ Route::middleware(['client', 'XSS'])
             });
             
         Route::controller(StripeController::class)
+            ->prefix('stripe')
+            ->as('stripe.')
             ->group(function () {
-                Route::post('/stripe/customer', 'createCustomer');
-                Route::post('/stripe/payment-intent', 'createPaymentIntent');
+                Route::post('/customer', 'createCustomer');
+                Route::post('/payment-intent', 'createPaymentIntent');
+                Route::post('/subscription', 'createSubscription');
+                Route::post('/subscription/cancel', 'cancelSubscription');
             });
     });

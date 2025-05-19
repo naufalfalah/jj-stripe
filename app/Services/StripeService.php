@@ -5,6 +5,7 @@ namespace App\Services;
 use Stripe\Stripe;
 use Stripe\Customer;
 use Stripe\PaymentIntent;
+use Stripe\Subscription;
 
 class StripeService
 {
@@ -54,5 +55,35 @@ class StripeService
     public function retrievePaymentIntent(string $paymentIntentId): PaymentIntent
     {
         return PaymentIntent::retrieve($paymentIntentId);
+    }
+
+
+    /**
+     * Create a subscription
+     * 
+     * @param string $customerId
+     * @param string $priceId
+     * @return Subscription
+     */
+    public function createSubscription(string $customerId, string $priceId)
+    {
+        return Subscription::create([
+            'customer' => $customerId,
+            'items' => [
+                ['price' => $priceId]
+            ],
+        ]);
+    }
+
+    /**
+     * Cancel a subscription
+     * 
+     * @param string $subscriptionId
+     * @return Subscription
+     */
+    public function cancelSubscription(string $subscriptionId)
+    {
+        $subscription = Subscription::retrieve($subscriptionId);
+        return $subscription->cancel();
     }
 }
