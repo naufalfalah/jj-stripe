@@ -2,303 +2,183 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use App\Services\StripeService;
+use App\Models\Ads;
+use App\Models\ClientTour;
+use App\Models\ClientWallet;
+use App\Models\Tour;
+use App\Models\Transections;
+use App\Models\User;
 use Illuminate\Http\Request;
 
+/**
+ * @group Wallet
+ *
+ * @subgroup Stripe
+ *
+ * @authenticated
+ */
 class StripeController extends Controller
 {
-    protected $stripeService;
-
-    public function __construct(StripeService $stripeService)
+    public function stripeCheckout($price, $product, $ad_id = '')
     {
-        $this->stripeService = $stripeService;
+        try {
+            $user_id = auth('api')->id();
+            $get_email = auth('api')->user()->email;
+
+            $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+
+            $redirectUrl = route('api.stripe.checkout.success', ['price' => $price, 'session_id' => '{CHECKOUT_SESSION_ID}']);
+
+            $response = $stripe->checkout->sessions->create([
+                'success_url' => $redirectUrl,
+                'customer_email' => $get_email,
+                'payment_method_types' => ['link', 'card'],
+                'line_items' => [
+                    [
+                        'price_data' => [
+                            'product_data' => [
+                                'name' => 'TopUp',
+                                'description' => '4% card charge will be deducted from your total amount',
+                            ],
+                            'unit_amount' => 100 * $price,
+                            'currency' => 'SGD',
+                        ],
+                        'quantity' => 1,
+                    ],
+                ],
+                'mode' => 'payment',
+                'allow_promotion_codes' => true,
+                'metadata' => [
+                    'ad_id' => $ad_id,
+                ],
+            ]);
+
+            ActivityLogHelper::save_activity($user_id, "Initiated Stripe checkout for $product with price $price", 'StripeController', 'app');
+
+            // TODO: Change to sendSuccessResponse
+            return response()->json(['payment_url' => $response['url']], 200);
+        } catch (\Exception $e) {
+            ActivityLogHelper::save_activity(auth('api')->id(), 'Stripe checkout error: '.$e->getMessage(), 'StripeController', 'app');
+
+            // TODO: Change to sendErrorResponse
+            return response()->json(['error' => 'An error occurred during checkout: '.$e->getMessage()], 500);
+        }
     }
 
-    // Customer Management
-    public function createCustomer(Request $request)
+    public function stripeCheckoutSuccess(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'name' => 'required|string',
-        ]);
+        $price = $request->price;
 
-        $customer = $this->stripeService->createCustomer($request->email, $request->name);
+        $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+        $response = $stripe->checkout->sessions->retrieve($request->session_id);
+        $customerEmail = $response->customer_email;
 
-        return response()->json($customer);
-    }
+        $user = User::where('email', $customerEmail)->first();
+        $user_id = $user->id;
 
-    public function getCustomers(Request $request)
-    {
-        $request->validate([
-            'limit' => 'integer|min:1|max:100',
-            'starting_after' => 'nullable|string',
-            'ending_before' => 'nullable|string',
-        ]);
+        if (empty($response->metadata->ad_id)) {
+            ClientWallet::create([
+                'client_id' => $user_id,
+                'transaction_id' => $response->id,
+                'amount_in' => $price,
+                'topup_type' => 'stripe',
+                'data' => $response,
+                'status' => 'completed',
+            ]);
 
-        $customer = $this->stripeService->getCustomers(
-            $request->get('limit', 10),
-            $request->get('starting_after'),
-            $request->get('ending_before')
-        );
+            // Log the top-up success
+            ActivityLogHelper::save_activity($user_id, "Stripe top-up completed for client [$customerEmail] with amount $price", 'StripeController', 'app');
+        } else {
+            $ads = Ads::find($response->metadata->ad_id);
+            $this->handleAdTransactions($user, $response, $price, $ads);
 
-        return response()->json($customer);
-    }
-
-    public function getCustomer(Request $request, $customerId)
-    {
-        $customer = $this->stripeService->getCustomer($customerId);
-
-        return response()->json($customer);
-    }
-
-    public function updateCustomer(Request $request, $customerId)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'name' => 'required|string',
-        ]);
-
-        $customer = $this->stripeService->updateCustomer($customerId, $request->email, $request->name);
-
-        return response()->json($customer);
-    }
-
-    public function deleteCustomer(Request $request, $customerId)
-    {
-        $this->stripeService->deleteCustomer($customerId);
-
-        return response()->json(['message' => 'Customer deleted successfully']);
-    }
-
-    // Subscription Management
-    public function getSubscriptions(Request $request)
-    {
-        $request->validate([
-            'limit' => 'integer|min:1|max:100',
-            'starting_after' => 'nullable|string',
-            'ending_before' => 'nullable|string',
-        ]);
-
-        $subscriptions = $this->stripeService->getSubscriptions(
-            $request->get('limit', 10),
-            $request->get('starting_after'),
-            $request->get('ending_before')
-        );
-
-        return response()->json($subscriptions);
-    }
-
-    // Invoice Management
-    public function getInvoices(Request $request)
-    {
-        $request->validate([
-            'limit' => 'integer|min:1|max:100',
-            'starting_after' => 'nullable|string',
-            'ending_before' => 'nullable|string',
-        ]);
-
-        $invoices = $this->stripeService->getInvoices(
-            $request->get('limit', 10),
-            $request->get('starting_after'),
-            $request->get('ending_before')
-        );
-
-        return response()->json($invoices);
-    }
-
-    public function getInvoice(Request $request, $invoiceId)
-    {
-        $invoice = $this->stripeService->getInvoice($invoiceId);
-
-        return response()->json($invoice);
-    }
-
-    public function payInvoice(Request $request, $invoiceId)
-    {
-        $request->validate([
-            'payment_method' => 'required|string',
-        ]);
-
-        $invoice = $this->stripeService->payInvoice($invoiceId, $request->payment_method);
-
-        return response()->json($invoice);
-    }
-
-    public function sendInvoice(Request $request, $invoiceId)
-    {
-        $this->stripeService->sendInvoice($invoiceId);
-
-        return response()->json(['message' => 'Invoice sent successfully']);
-    }
-
-    
-
-    // Product Management
-    public function createProduct(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        $product = $this->stripeService->createProduct($request->name, $request->description);
-
-        return response()->json($product);
-    }
-
-    public function getProducts(Request $request)
-    {
-        $request->validate([
-            'limit' => 'integer|min:1|max:100',
-            'starting_after' => 'nullable|string',
-            'ending_before' => 'nullable|string',
-        ]);
-
-        $products = $this->stripeService->getProducts(
-            $request->get('limit', 10),
-            $request->get('starting_after'),
-            $request->get('ending_before')
-        );
-
-        return response()->json($products);
-    }
-
-    public function getProduct(Request $request, $productId)
-    {
-        $product = $this->stripeService->getProduct($productId);
-
-        return response()->json($product);
-    }
-
-    public function updateProduct(Request $request, $productId)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
-
-        $product = $this->stripeService->updateProduct($productId, $request->name, $request->description);
-
-        return response()->json($product);
-    }
-
-    public function deleteProduct(Request $request, $productId)
-    {
-        $this->stripeService->deleteProduct($productId);
-
-        return response()->json(['message' => 'Product deleted successfully']);
-    }
-
-    // Price Management
-    public function createPrice(Request $request)
-    {
-        $request->validate([
-            'product_id' => 'required|string',
-            'unit_amount' => 'required|integer',
-            'currency' => 'string|nullable',
-            'recurring' => 'nullable|array',
-        ]);
-
-        $price = $this->stripeService->createPrice(
-            $request->product_id,
-            $request->unit_amount,
-            $request->currency,
-            $request->recurring
-        );
-
-        return response()->json($price);
-    }
-
-    public function getPrices(Request $request)
-    {
-        $request->validate([
-            'limit' => 'integer|min:1|max:100',
-            'starting_after' => 'nullable|string',
-            'ending_before' => 'nullable|string',
-        ]);
-
-        $prices = $this->stripeService->getPrices(
-            $request->get('limit', 10),
-            $request->get('starting_after'),
-            $request->get('ending_before')
-        );
-
-        return response()->json($prices);
-    }
-
-    public function getPrice(Request $request, $priceId)
-    {
-        $price = $this->stripeService->getPrice($priceId);
-
-        return response()->json($price);
-    }
-
-    public function updatePrice(Request $request, $priceId)
-    {
-        $request->validate([
-            'unit_amount' => 'required|integer',
-            'currency' => 'required|string',
-            'recurring' => 'nullable|array',
-        ]);
-
-        $price = $this->stripeService->updatePrice(
-            $priceId,
-            $request->unit_amount,
-            $request->currency,
-            $request->recurring
-        );
-
-        return response()->json($price);
-    }
-
-    public function deletePrice(Request $request, $priceId)
-    {
-        $this->stripeService->deletePrice($priceId);
-
-        return response()->json(['message' => 'Price deleted successfully']);
-    }
-
-    // Payment Intent Management
-    public function createPaymentIntent(Request $request)
-    {
-        $request->validate([
-            'amount' => 'required|integer',
-            'currency' => 'required|string',
-            'customer_id' => 'nullable|string',
-        ]);
-
-        $paymentIntent = $this->stripeService->createPaymentIntent($request->amount, $request->currency, $request->customer_id);
-
-        return response()->json($paymentIntent);
-    }
-
-    public function createSubscription(Request $request)
-    {
-        $request->validate([
-            'customer_id' => 'required|string',
-            'price_id' => 'required|string',
-        ]);
-
-        $subscription = $this->stripeService->createSubscription($request->customer_id, $request->price_id);
-        if ($subscription->status !== 'active') {
-            return response()->json(['error' => 'Subscription creation failed'], 400);
+            // Log the ad payment transaction
+            $ad_id = $ads->id;
+            ActivityLogHelper::save_activity($user_id, "Ad payment completed for client [$customerEmail] and Ad ID $ad_id", 'StripeController', 'app');
         }
 
-        return response()->json($subscription);
+        $this->markClientTourAsComplete($user);
+
+        // Log the client tour completion
+        ActivityLogHelper::save_activity($user_id, "Client tour completed for client [$customerEmail]", 'StripeController', 'app');
+
+        // TODO: Change to sendSuccessResponse
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Top Up Added Successfully',
+        ], 200);
     }
 
-    public function cancelSubscription(Request $request)
+    private function handleAdTransactions($user, $response, &$price, $ads)
     {
-        $request->validate([
-            'subscription_id' => 'required|string',
+        $user_id = $user->id;
+        $ads_id = $ads->id;
+
+        Transections::create([
+            'client_id' => $user_id,
+            'transaction_id' => $response->id,
+            'amount_in' => $price,
+            'ads_id' => $ads_id,
+            'topup_type' => 'stripe',
+            'status' => 'completed',
         ]);
 
-        $subscription = $this->stripeService->cancelSubscription($request->subscription_id);
-        if ($subscription->status !== 'canceled') {
-            return response()->json(['error' => 'Subscription cancellation failed'], 400);
+        // Log the ad transaction
+        ActivityLogHelper::save_activity($user_id, "Ad transaction created for ad ID $ads_id with amount $price", 'StripeController', 'app');
+
+        // Handle domain payment if necessary
+        if ($ads->domain_is == 'request_to_purchase' && $ads->is_domain_pay == 0) {
+            sleep(1);
+            $price -= 20;
+            Transections::create([
+                'client_id' => $user->id,
+                'amount_out' => 20,
+                'ads_id' => $ads->id,
+                'topup_type' => 'domain_payment',
+                'status' => 'completed',
+            ]);
+            $ads->is_domain_pay = 1;
         }
 
-        return response()->json($subscription);
+        // Log the domain payment
+        ActivityLogHelper::save_activity($user_id, "Domain payment of 20 completed for ad ID $ads_id", 'StripeController', 'app');
+
+        // Handle hosting payment if necessary
+        if ($ads->hosting_is == 'request_to_purchase_hosting' && $ads->is_hosting_pay == 0) {
+            sleep(1);
+            $price -= 15;
+            Transections::create([
+                'client_id' => $user->id,
+                'amount_out' => 15,
+                'ads_id' => $ads->id,
+                'topup_type' => 'hosting_payment',
+                'status' => 'completed',
+            ]);
+            $ads->is_hosting_pay = 1;
+
+            // Log the hosting payment
+            ActivityLogHelper::save_activity($user_id, "Hosting payment of 15 completed for ad ID  $ads_id", 'StripeController', 'app');
+        }
+
+        // Update ad spending and status
+        $total_amt = $ads->spend_amount + $price;
+        $amt = $ads->spend_type == 'daily' ? $ads->daily_budget * 30 : $ads->daily_budget;
+        $ads->payment_status = ($total_amt >= $amt) ? 1 : $ads->payment_status;
+        $ads->spend_amount = $total_amt;
+        $ads->save();
+
+        // Log the ad spending update
+        ActivityLogHelper::save_activity($user_id, "Ad spend updated for ad ID $ads_id with total spend ".$ads->spend_amount, 'StripeController', 'app');
+    }
+
+    private function markClientTourAsComplete($user)
+    {
+        $tour = Tour::firstOrCreate(['code' => 'START_3'], ['name' => 'Get Started']);
+        ClientTour::firstOrCreate([
+            'client_id' => $user->id,
+            'tour_id' => $tour->id,
+        ]);
     }
 }
