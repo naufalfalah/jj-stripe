@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::table('packages', function (Blueprint $table) {
             $table->string('logo')->nullable()->after('url');
-            $table->integer('duration')->nullable->after('logo');
+            $table->integer('duration')->nullable()->after('logo');
             $table->string('status')->default('active')->after('duration');
             $table->string('stripe_product_id')->nullable()->after('status');
         });
