@@ -71,6 +71,69 @@ class StripeController extends Controller
         return response()->json(['message' => 'Customer deleted successfully']);
     }
 
+    // Subscription Management
+    public function getSubscriptions(Request $request)
+    {
+        $request->validate([
+            'limit' => 'integer|min:1|max:100',
+            'starting_after' => 'nullable|string',
+            'ending_before' => 'nullable|string',
+        ]);
+
+        $subscriptions = $this->stripeService->getSubscriptions(
+            $request->get('limit', 10),
+            $request->get('starting_after'),
+            $request->get('ending_before')
+        );
+
+        return response()->json($subscriptions);
+    }
+
+    // Invoice Management
+    public function getInvoices(Request $request)
+    {
+        $request->validate([
+            'limit' => 'integer|min:1|max:100',
+            'starting_after' => 'nullable|string',
+            'ending_before' => 'nullable|string',
+        ]);
+
+        $invoices = $this->stripeService->getInvoices(
+            $request->get('limit', 10),
+            $request->get('starting_after'),
+            $request->get('ending_before')
+        );
+
+        return response()->json($invoices);
+    }
+
+    public function getInvoice(Request $request, $invoiceId)
+    {
+        $invoice = $this->stripeService->getInvoice($invoiceId);
+
+        return response()->json($invoice);
+    }
+
+    public function payInvoice(Request $request, $invoiceId)
+    {
+        $request->validate([
+            'payment_method' => 'required|string',
+        ]);
+
+        $invoice = $this->stripeService->payInvoice($invoiceId, $request->payment_method);
+
+        return response()->json($invoice);
+    }
+
+    public function sendInvoice(Request $request, $invoiceId)
+    {
+        $this->stripeService->sendInvoice($invoiceId);
+
+        return response()->json(['message' => 'Invoice sent successfully']);
+    }
+
+    
+
     // Product Management
     public function createProduct(Request $request)
     {
@@ -118,6 +181,13 @@ class StripeController extends Controller
         $product = $this->stripeService->updateProduct($productId, $request->name, $request->description);
 
         return response()->json($product);
+    }
+
+    public function deleteProduct(Request $request, $productId)
+    {
+        $this->stripeService->deleteProduct($productId);
+
+        return response()->json(['message' => 'Product deleted successfully']);
     }
 
     // Price Management
@@ -180,6 +250,13 @@ class StripeController extends Controller
         );
 
         return response()->json($price);
+    }
+
+    public function deletePrice(Request $request, $priceId)
+    {
+        $this->stripeService->deletePrice($priceId);
+
+        return response()->json(['message' => 'Price deleted successfully']);
     }
 
     // Payment Intent Management
