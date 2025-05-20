@@ -2,29 +2,25 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
 use App\Imports\LeadClientImport;
+use App\Models\Admin;
+use App\Models\Group;
 use App\Models\LeadActivity;
+use App\Models\LeadActivityAttachments;
+use App\Models\LeadAssign;
 use App\Models\LeadClient;
 use App\Models\LeadData;
-use App\Models\Group;
-use App\Models\Admin;
-use App\Models\LeadAssign;
 use App\Models\LeadGroup;
+use App\Traits\GoogleTrait;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Str;
-use App\Traits\GoogleTrait;
-use Carbon\Carbon;
-use App\Helpers\ActivityLogHelper;
-use App\Models\JunkLead;
-use App\Models\LeadSource;
-use App\Services\WhatsappService;
-use App\Models\LeadActivityAttachments;
-use Maatwebsite\Excel\Concerns\ToArray;
 
 class LeadController extends Controller
 {
@@ -45,9 +41,7 @@ class LeadController extends Controller
 
             if ($request->type == 'all_leads') {
 
-
                 ActivityLogHelper::save_activity($auth_id, 'Leads Management', 'LeadClient');
-
 
                 $query = LeadClient::query()->with('ads', 'activity', 'lead_groups.group', 'assign', 'lead_source')
                     ->where('client_id', $auth_id);
@@ -67,12 +61,12 @@ class LeadController extends Controller
                     }
                 }
 
-
                 if (!empty($request->group_id)) {
                     $query = $query->whereHas('lead_groups', function ($q) use ($request) {
                         $q->where('group_id', $request->group_id);
                     });
                 }
+
                 return DataTables::of($query->latest())
                     ->addIndexColumn()
                     ->addColumn('check_boxes', function ($data) {
@@ -80,11 +74,11 @@ class LeadController extends Controller
                     })
                     ->addColumn('lead_type', function ($data) {
                         if ($data->lead_type == 'ppc') {
-                            return '<span class="badge bg-primary">' . strtoupper($data->lead_type) . ' (' . $data->ads->adds_title . ')</span>';
+                            return '<span class="badge bg-primary">'.strtoupper($data->lead_type).' ('.$data->ads->adds_title.')</span>';
                         } if ($data->lead_type == 'manual') {
-                            return '<span class="badge bg-primary">' . ucfirst($data->lead_type) . '</span>';
+                            return '<span class="badge bg-primary">'.ucfirst($data->lead_type).'</span>';
                         } else {
-                            return '<span class="badge bg-primary">' . ucfirst($data->lead_type) .' ('.$data->lead_source->name.')</span>';
+                            return '<span class="badge bg-primary">'.ucfirst($data->lead_type).' ('.$data->lead_source->name.')</span>';
                         }
                     })
                     ->addColumn('name', function ($data) {
@@ -102,6 +96,7 @@ class LeadController extends Controller
                     ->addColumn('latest_activity', function ($data) {
                         if ($data->activity()->count() > 0) {
                             $last = ($data->activity()->count() - 1);
+
                             return $data->activity[$last]->created_at->diffForHumans();
                         } else {
                             return '-';
@@ -126,7 +121,7 @@ class LeadController extends Controller
 
                 ActivityLogHelper::save_activity($auth_id, 'Uncontacted Leads', 'LeadClient');
 
-                $query = LeadClient::query()->with('activity') ->where('client_id', $auth_id)->where('status', 'uncontacted');
+                $query = LeadClient::query()->with('activity')->where('client_id', $auth_id)->where('status', 'uncontacted');
                 if (isset($request->leadSource) && !empty($request->leadSource) && $request->leadSource !== 'all') {
                     $query = $query->where('lead_type', $request->leadSource);
                 }
@@ -140,6 +135,7 @@ class LeadController extends Controller
                         $query->whereBetween('created_at', [$startDate, $endDate]);
                     }
                 }
+
                 return DataTables::of($query->latest())
                     ->addIndexColumn()
                     ->addColumn('name', function ($data) {
@@ -170,9 +166,9 @@ class LeadController extends Controller
 
                 ActivityLogHelper::save_activity($auth_id, 'Recently Viewed Content', 'LeadClient');
                 $query = LeadClient::where('client_id', $auth_id)
-                ->whereHas('activity', function ($query) use ($seven_days_ago) {
-                    $query->where('last_open', '>=', $seven_days_ago);
-                });
+                    ->whereHas('activity', function ($query) use ($seven_days_ago) {
+                        $query->where('last_open', '>=', $seven_days_ago);
+                    });
                 if (isset($request->leadSource) && !empty($request->leadSource) && $request->leadSource !== 'all') {
                     $query = $query->where('lead_type', $request->leadSource);
                 }
@@ -203,11 +199,13 @@ class LeadController extends Controller
                     })
                     ->addColumn('viewed_item', function ($data) {
                         $latestActivity = $data->activity->first();
+
                         return $latestActivity ? Str::limit($latestActivity->title, 25, '...') : 'No activity';
                     })
                     ->addColumn('last_viewed', function ($data) {
 
                         $latestActivity = $data->activity->first();
+
                         return $latestActivity ? $latestActivity->last_open->format('M-d-Y - h:i a') : 'No activity';
                     })
                     ->filter(function ($query) {
@@ -282,6 +280,7 @@ class LeadController extends Controller
             'phone_number' => $phoneNumber,
             'to_phone_number' => $toPhoneNumber,
         ];
+
         return view('client.lead_management.client_details', $data);
     }
 
@@ -311,7 +310,7 @@ class LeadController extends Controller
             foreach ($newLeadIds as $lead_id) {
                 LeadAssign::create([
                     'lead_id' => $lead_id,
-                    'assign_to' => $admin->id
+                    'assign_to' => $admin->id,
                 ]);
             }
 
@@ -338,13 +337,13 @@ class LeadController extends Controller
             $rules = [
                 'client_name' => [
                     'required',
-                    'regex:/^[a-zA-Z0-9\s]+$/'
+                    'regex:/^[a-zA-Z0-9\s]+$/',
                 ],
 
                 'email' => 'required|email',
                 'mobile_number' => [
                     'required',
-                    'regex:/^[89][0-9]{7}$/'
+                    'regex:/^[89][0-9]{7}$/',
                 ],
             ];
 
@@ -379,9 +378,7 @@ class LeadController extends Controller
             }
             // code for junk lead
 
-
-
-            $client_lead = new LeadClient();
+            $client_lead = new LeadClient;
 
             if ($request->id && !empty($request->id)) {
                 $client_lead = $client_lead->findOrfail($request->id);
@@ -398,13 +395,13 @@ class LeadController extends Controller
                             'required',
                             function ($attribute, $value, $fail) {
                                 if (trim($value) === '') {
-                                    $fail('The ' . $attribute . ' field cannot contain only spaces.');
+                                    $fail('The '.$attribute.' field cannot contain only spaces.');
                                 }
-                            }
+                            },
                         ],
                     ];
 
-                    $validator = Validator::make($request->all(), $rules, );
+                    $validator = Validator::make($request->all(), $rules);
 
                     if ($validator->fails()) {
                         return ['errors' => $validator->errors()];
@@ -432,7 +429,6 @@ class LeadController extends Controller
                     'reload' => true,
                 ];
             }
-
 
             $client_lead->client_id = auth('web')->id();
             $client_lead->name = $request->client_name;
@@ -484,7 +480,7 @@ class LeadController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -495,11 +491,11 @@ class LeadController extends Controller
 
         if (isset($request->edit_group_id) && !empty($request->edit_group_id)) {
             $rules = [
-                'group_name' => 'required|unique:groups,group_title,' . $request->edit_group_id . ',id,client_id,' . $client_id . ',deleted_at,NULL',
+                'group_name' => 'required|unique:groups,group_title,'.$request->edit_group_id.',id,client_id,'.$client_id.',deleted_at,NULL',
             ];
         } else {
             $rules = [
-                'group_name' => 'required|unique:groups,group_title,NULL,id,client_id,' . $client_id . ',deleted_at,NULL',
+                'group_name' => 'required|unique:groups,group_title,NULL,id,client_id,'.$client_id.',deleted_at,NULL',
             ];
         }
 
@@ -514,7 +510,7 @@ class LeadController extends Controller
 
         try {
 
-            $client_group = new Group();
+            $client_group = new Group;
 
             if (isset($request->edit_group_id) && !empty($request->edit_group_id)) {
 
@@ -550,7 +546,7 @@ class LeadController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -559,7 +555,6 @@ class LeadController extends Controller
 
         // dd($request);
         $auth_id = auth('web')->id();
-
 
         ActivityLogHelper::save_activity($auth_id, 'Lead Group Save', 'LeadGroup');
 
@@ -578,7 +573,7 @@ class LeadController extends Controller
                         $lead_group->delete();
                     }
                     foreach ($request->groups as $lead_group) {
-                        $client_lead_group = new LeadGroup();
+                        $client_lead_group = new LeadGroup;
                         $client_lead_group->group_id = $lead_group;
                         $client_lead_group->lead_id = $lead_id;
                         $client_lead_group->added_by_id = auth('web')->id();
@@ -600,7 +595,7 @@ class LeadController extends Controller
                 DB::rollback();
 
                 // Log or handle the exception as needed
-                return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+                return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
             }
         }
     }
@@ -629,7 +624,6 @@ class LeadController extends Controller
         ]);
     }
 
-
     public function import_file(Request $request)
     {
         $auth_id = auth('web')->id();
@@ -644,7 +638,6 @@ class LeadController extends Controller
                     $allowedMimes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
                     $allowedExtensions = ['xlsx', 'xls', 'csv'];
 
-
                     if (!in_array($file->getMimeType(), $allowedMimes)) {
                         return $fail('The upload file must be a file of type: xlsx, xls, csv.');
                     }
@@ -653,14 +646,12 @@ class LeadController extends Controller
                         return $fail('The upload file must have a valid extension: xlsx, xls, csv.');
                     }
 
-
                     $importedData = Excel::toArray(new LeadClientImport, $file);
                     // dd($importedData);
 
                     if (empty(array_filter($importedData[0], fn ($row) => array_filter($row)))) {
                         return $fail('The file is empty.');
                     }
-
 
                     if ($importedData[0][0][0] == null) {
                         return $fail('The header of the file is empty.');
@@ -669,7 +660,7 @@ class LeadController extends Controller
                     $requiredHeaders = [
                         0 => 'Name',
                         1 => 'Email',
-                        2 => 'Mobile Number'
+                        2 => 'Mobile Number',
                     ];
 
                     $headers = $importedData[0][0];
@@ -681,26 +672,23 @@ class LeadController extends Controller
 
                     for ($i = 1; $i < count($importedData[0]); $i++) {
                         $row = $importedData[0][$i];
-                        
+
                         // Validate Name
                         if (empty($row[0]) || !preg_match('/^[a-zA-Z0-9\s]+$/', $row[0])) {
                             return $fail("Error: Invalid Name in row $i");
                         }
-                        
+
                         // Validate Email (basic validation)
                         if (empty($row[1]) || !filter_var($row[1], FILTER_VALIDATE_EMAIL)) {
                             return $fail("Error: Invalid Email in row $i");
                         }
-                        
+
                         // Validate Mobile Number (basic numeric check)
                         if (empty($row[2]) || !is_numeric($row[2])) {
                             return $fail("Error: Invalid Mobile Number in row $i");
                         }
                     }
-                
 
-
-                    
                     if (count($importedData[0]) === 1) {
                         return $fail('The uploaded file does not contain any data after the header.');
                     }
@@ -713,7 +701,7 @@ class LeadController extends Controller
                             if ($subKey === 0) {
                                 continue; // Skip the first row
                             }
-                    
+
                             // Check if all values in the sub-array are either null, empty strings, or spaces
                             if (count(array_filter($subSubArray, function ($value) {
                                 return !is_null($value) && trim($value) !== ''; // Filter out non-null, non-blank values
@@ -722,13 +710,13 @@ class LeadController extends Controller
                                 unset($array[$key][$subKey]);
                             }
                         }
-                    
+
                         // If the inner array becomes empty after unsetting, remove it as well
                         if (count($array[$key]) === 1) { // If only the header row remains (count of 1), consider it empty
                             unset($array[$key]);
                         }
                     }
-                    
+
                     // After cleaning up, check if the whole array is empty
                     if (empty($array)) {
                         return $fail('The uploaded file does not contain any data after the header.');
@@ -737,7 +725,6 @@ class LeadController extends Controller
                 },
             ],
         ];
-
 
         $validator = Validator::make($request->all(), $rules);
 
@@ -753,15 +740,6 @@ class LeadController extends Controller
         ]);
     }
 
-
-
-
-
-
-
-
-
-
     public function delete($id, $is_reload = null)
     {
         $auth_id = auth('web')->id();
@@ -775,7 +753,7 @@ class LeadController extends Controller
         if (!empty($activity_ids)) {
             LeadActivity::whereIn('id', $activity_ids)->update([
                 'delete_by_type' => 'user',
-                'delete_by_id' => auth('web')->id()
+                'delete_by_id' => auth('web')->id(),
             ]);
         }
 
@@ -783,7 +761,7 @@ class LeadController extends Controller
         if (!empty($lead_data_ids)) {
             LeadData::whereIn('id', $lead_data_ids)->update([
                 'delete_by_type' => 'user',
-                'delete_by_id' => auth('web')->id()
+                'delete_by_id' => auth('web')->id(),
             ]);
         }
 
@@ -791,7 +769,7 @@ class LeadController extends Controller
         if (!empty($lead_group_ids)) {
             LeadGroup::whereIn('lead_id', $lead_group_ids)->update([
                 'delete_by_type' => 'user',
-                'delete_by_id' => auth('web')->id()
+                'delete_by_id' => auth('web')->id(),
             ]);
         }
 
@@ -804,7 +782,7 @@ class LeadController extends Controller
         if ($is_reload == 1) {
             return response()->json([
                 'success' => 'Client Deleted Successfully',
-                'reload' => true
+                'reload' => true,
             ]);
         } else {
             return response()->json([
@@ -813,7 +791,6 @@ class LeadController extends Controller
             ]);
         }
     }
-
 
     public function activity_save(Request $request)
     {
@@ -825,8 +802,8 @@ class LeadController extends Controller
                 if (empty($request->attachments)) {
                     return response()->json([
                         'errors' => [
-                            'attachmentss' => ['The attachmentss field is required.']
-                        ]
+                            'attachmentss' => ['The attachmentss field is required.'],
+                        ],
                     ]);
                 }
             }
@@ -840,8 +817,8 @@ class LeadController extends Controller
                     if (!isset($request->old_file_id) && count($filteredAttachments) == 0) {
                         return response()->json([
                             'errors' => [
-                                'attachmentss' => ['The attachmentss field is required.']
-                            ]
+                                'attachmentss' => ['The attachmentss field is required.'],
+                            ],
                         ]);
                     }
                 }
@@ -861,7 +838,7 @@ class LeadController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        $activity = new LeadActivity();
+        $activity = new LeadActivity;
         if ($request->id && !empty($request->id)) {
             $activity = $activity->findOrfail($request->id);
             ActivityLogHelper::save_activity($auth_id, 'Update Lead Activity', 'LeadActivity');
@@ -871,14 +848,14 @@ class LeadController extends Controller
             ];
             if ($request->activity_type != 'attachment' && empty($request->old_file_id)) {
                 DB::table('lead_activity_attachments')
-                ->where('activity_id', $request->id)
-                ->delete();
+                    ->where('activity_id', $request->id)
+                    ->delete();
             }
             if (!empty($request->old_file_id)) {
                 DB::table('lead_activity_attachments')
-                ->where('activity_id', $request->id)
-                ->whereNotIn('id', $request->old_file_id)
-                ->delete();
+                    ->where('activity_id', $request->id)
+                    ->whereNotIn('id', $request->old_file_id)
+                    ->delete();
                 // unset($request->attachments[0]);
             }
         } else {
@@ -901,14 +878,14 @@ class LeadController extends Controller
             $activity->description = $request->description;
             $activity->date_time = date('Y-m-d H:i', strtotime($request->date_time));
             $activity->type = $request->activity_type;
-            
+
             if ($client_lead->status == 'uncontacted') {
                 $client_lead->status = 'contacted';
                 $client_lead->save();
             }
 
             $activity->save();
-            
+
             // Commit the transaction
             DB::commit();
             // if($request->activity_type == 'attachment'){
@@ -917,11 +894,11 @@ class LeadController extends Controller
                 foreach ($request->attachments as $key => $value) {
                     if ($value instanceof \Illuminate\Http\UploadedFile) {
                         $existingAttachment = LeadActivityAttachments::where('activity_id', $activity->id)
-                        ->where('file_name', $value->getClientOriginalName())
-                        ->first();
+                            ->where('file_name', $value->getClientOriginalName())
+                            ->first();
                         if (!$existingAttachment) {
-                            $file = fileManagerUploadFile($value, 'uploads/' . $folder_name . '/');
-                            $LeadActivityAttachments = new LeadActivityAttachments();
+                            $file = fileManagerUploadFile($value, 'uploads/'.$folder_name.'/');
+                            $LeadActivityAttachments = new LeadActivityAttachments;
                             $LeadActivityAttachments->file_name = $value->getClientOriginalName();
                             $LeadActivityAttachments->activity_id = $activity->id;
                             $LeadActivityAttachments->file_url = $file;
@@ -930,6 +907,7 @@ class LeadController extends Controller
                     }
                 }
             }
+
             // }
             return response()->json($msg);
         } catch (\Exception $e) {
@@ -937,7 +915,7 @@ class LeadController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error activity: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error activity: '.$e->getMessage()], 500);
         }
     }
 
@@ -957,7 +935,6 @@ class LeadController extends Controller
             'reload' => true,
         ]);
     }
-
 
     public function set_follow_up(Request $request)
     {
@@ -1004,7 +981,6 @@ class LeadController extends Controller
     public function get_follow_ups(Request $request)
     {
         $auth_id = auth('web')->id();
-
 
         $todayDate = now()->format('Y-m-d');
         if ($request->ajax() && !$request->is_html) {
@@ -1069,6 +1045,7 @@ class LeadController extends Controller
         if ($request->status == 'spam') {
             LeadAssign::where('lead_id', $request->id)->delete();
         }
+
         return response()->json([
             'success' => 'Status Updated',
             'reload' => true,
@@ -1084,18 +1061,17 @@ class LeadController extends Controller
             ActivityLogHelper::save_activity($auth_id, 'PPC Leads', 'LeadClient');
         }
 
-
         $data = [
             'breadcrumb_main' => 'Leads',
             'breadcrumb' => 'PPC Leads',
             'title' => 'PPC Leads',
         ];
+
         return view('client.lead_management.ppc_leads')->with($data);
     }
 
     public function lead_status(Request $request)
     {
-
 
         $auth_id = auth('web')->id();
 
@@ -1120,7 +1096,6 @@ class LeadController extends Controller
                 break;
         }
 
-
         $lead_client = LeadClient::find($request->lead_id);
         $lead_client->admin_status = $request->admin_status;
         $lead_client->save();
@@ -1139,7 +1114,6 @@ class LeadController extends Controller
             ActivityLogHelper::save_activity($auth_id, 'View Client File Ctivity', 'LeadActivity');
         }
 
-
         $get_lead_activity = LeadActivity::with('client_file')->where('id', hashids_decode($id))->latest()->first();
         $get_client_lead = LeadClient::with('clients')->where('id', $get_lead_activity->lead_client_id)->latest()->first();
 
@@ -1149,14 +1123,13 @@ class LeadController extends Controller
         $get_lead_activity->save();
 
         $data = [
-            'title' => $get_lead_activity->title . ' for ' . $get_client_lead->name,
+            'title' => $get_lead_activity->title.' for '.$get_client_lead->name,
             'get_lead_activity' => $get_lead_activity,
-            'get_client_lead' => $get_client_lead
+            'get_client_lead' => $get_client_lead,
         ];
 
         return view('client.lead_file_view', $data);
     }
-
 
     // function for add lead to spam
     public function add_lead_to_spam(Request $request)
@@ -1173,7 +1146,6 @@ class LeadController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-
         $leadIds = $request->lead_ids;
 
         LeadClient::whereIn('id', $leadIds)->update(['status' => 'spam']);
@@ -1187,6 +1159,5 @@ class LeadController extends Controller
     }
 
     // function for add lead to spam
-
 
 }

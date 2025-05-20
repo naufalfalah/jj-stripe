@@ -3,37 +3,34 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use App\Models\Group;
 use App\Imports\AdminLeadImport;
 use App\Jobs\SendDiscordMessage;
 use App\Models\Ads;
+use App\Models\Group;
 use App\Models\LeadActivity;
+use App\Models\LeadActivityAttachments;
 use App\Models\LeadClient;
 use App\Models\LeadData;
 use App\Models\LeadGroup;
 use App\Models\LeadSource;
-use App\Models\LeadActivityAttachments;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Str;
-use App\Models\User;
-use App\Services\WhatsappService;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class ClientLeadManagmentController extends Controller
 {
-
-
     private function send_discord_msg($url, $data)
     {
         $post_array = [
             'content' => $data,
             'embeds' => null,
-            'attachments' => []
+            'attachments' => [],
         ];
         $curl = curl_init();
 
@@ -49,9 +46,9 @@ class ClientLeadManagmentController extends Controller
             CURLOPT_POSTFIELDS => json_encode($post_array),
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'Cookie: __dcfduid=8ec71370974011ed9aeb96cee56fe4d4; __sdcfduid=8ec71370974011ed9aeb96cee56fe4d49deabe12bc0fc3d686d23eaa0b49af957ffe68eadec722cff5170d5c750b00ea'
+                'Cookie: __dcfduid=8ec71370974011ed9aeb96cee56fe4d4; __sdcfduid=8ec71370974011ed9aeb96cee56fe4d49deabe12bc0fc3d686d23eaa0b49af957ffe68eadec722cff5170d5c750b00ea',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -119,6 +116,7 @@ class ClientLeadManagmentController extends Controller
                             $q->where('group_id', $request->group_id);
                         });
                     }
+
                     return DataTables::of($query->latest())
                         ->addIndexColumn()
                         ->addColumn('check_boxes', function ($data) {
@@ -139,6 +137,7 @@ class ClientLeadManagmentController extends Controller
                         ->addColumn('latest_activity', function ($data) {
                             if ($data->activity()->count() > 0) {
                                 $last = ($data->activity()->count() - 1);
+
                                 return $data->activity[$last]->created_at->diffForHumans();
                             } else {
                                 return '-';
@@ -267,11 +266,13 @@ class ClientLeadManagmentController extends Controller
                         })
                         ->addColumn('viewed_item', function ($data) {
                             $latestActivity = $data->activity->first();
+
                             return $latestActivity ? Str::limit($latestActivity->title, 25, '...') : 'No activity';
                         })
                         ->addColumn('last_viewed', function ($data) {
 
                             $latestActivity = $data->activity->first();
+
                             return $latestActivity ? $latestActivity->last_open->format('M-d-Y - h:i a') : 'No activity';
                         })
                         ->filter(function ($query) {
@@ -386,6 +387,7 @@ class ClientLeadManagmentController extends Controller
                         ->addColumn('latest_activity', function ($data) {
                             if ($data->activity()->count() > 0) {
                                 $last = ($data->activity()->count() - 1);
+
                                 return $data->activity[$last]->created_at->diffForHumans();
                             } else {
                                 return '-';
@@ -512,11 +514,13 @@ class ClientLeadManagmentController extends Controller
                         })
                         ->addColumn('viewed_item', function ($data) {
                             $latestActivity = $data->activity->first();
+
                             return $latestActivity ? Str::limit($latestActivity->title, 25, '...') : 'No activity';
                         })
                         ->addColumn('last_viewed', function ($data) {
 
                             $latestActivity = $data->activity->first();
+
                             return $latestActivity ? $latestActivity->last_open->format('M-d-Y - h:i a') : 'No activity';
                         })
                         ->filter(function ($query) {
@@ -562,7 +566,6 @@ class ClientLeadManagmentController extends Controller
             ];
         }
 
-
         return view('admin.client_leads_management.index', $data);
     }
 
@@ -588,6 +591,7 @@ class ClientLeadManagmentController extends Controller
             'phone_number' => $phoneNumber,
             'to_phone_number' => $toPhoneNumber,
         ];
+
         return view('admin.client_leads_management.client_details', $data);
     }
 
@@ -614,7 +618,7 @@ class ClientLeadManagmentController extends Controller
         DB::beginTransaction();
 
         try {
-            $client_lead = new LeadClient();
+            $client_lead = new LeadClient;
 
             if ($request->id && !empty($request->id)) {
                 $client_lead = $client_lead->findOrfail($request->id);
@@ -630,13 +634,13 @@ class ClientLeadManagmentController extends Controller
                             'required',
                             function ($attribute, $value, $fail) {
                                 if (trim($value) === '') {
-                                    $fail('The ' . $attribute . ' field cannot contain only spaces.');
+                                    $fail('The '.$attribute.' field cannot contain only spaces.');
                                 }
-                            }
+                            },
                         ],
                     ];
 
-                    $validator = Validator::make($request->all(), $rules, );
+                    $validator = Validator::make($request->all(), $rules);
 
                     if ($validator->fails()) {
                         return ['errors' => $validator->errors()];
@@ -695,7 +699,7 @@ class ClientLeadManagmentController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -707,14 +711,13 @@ class ClientLeadManagmentController extends Controller
         $client_id = $request->client_id;
         if (isset($request->edit_group_id) && !empty($request->edit_group_id)) {
             $rules = [
-                'group_name' => 'required|unique:groups,group_title,' . $request->edit_group_id . ',id,client_id,' . $client_id,
+                'group_name' => 'required|unique:groups,group_title,'.$request->edit_group_id.',id,client_id,'.$client_id,
             ];
         } else {
             $rules = [
-                'group_name' => 'required|unique:groups,group_title,NULL,id,client_id,' . $client_id,
+                'group_name' => 'required|unique:groups,group_title,NULL,id,client_id,'.$client_id,
             ];
         }
-
 
         $validator = Validator::make($request->all(), $rules);
 
@@ -737,7 +740,7 @@ class ClientLeadManagmentController extends Controller
                     'reload' => true,
                 ];
             } else {
-                $client_group = new Group();
+                $client_group = new Group;
                 $client_group->client_id = $client_id;
                 $client_group->group_title = $request->group_name;
                 $client_group->background_color = $request->group_colour;
@@ -750,9 +753,6 @@ class ClientLeadManagmentController extends Controller
                 ];
             }
 
-
-
-
             // Commit the transaction
             DB::commit();
 
@@ -762,7 +762,7 @@ class ClientLeadManagmentController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error Group: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error Group: '.$e->getMessage()], 500);
         }
     }
 
@@ -787,7 +787,7 @@ class ClientLeadManagmentController extends Controller
                     }
                     // $delete_lead_groups = LeadGroup::where('lead_id', $lead_id)->delete();
                     foreach ($request->groups as $lead_group) {
-                        $client_lead_group = new LeadGroup();
+                        $client_lead_group = new LeadGroup;
                         $client_lead_group->group_id = $lead_group;
                         $client_lead_group->lead_id = $lead_id;
                         $client_lead_group->user_type = 'admin';
@@ -811,7 +811,7 @@ class ClientLeadManagmentController extends Controller
                 DB::rollback();
 
                 // Log or handle the exception as needed
-                return response()->json(['error' => 'Error Group: ' . $e->getMessage()], 500);
+                return response()->json(['error' => 'Error Group: '.$e->getMessage()], 500);
             }
         }
     }
@@ -878,7 +878,7 @@ class ClientLeadManagmentController extends Controller
         if (!empty($activity_ids)) {
             LeadActivity::whereIn('id', $activity_ids)->update([
                 'delete_by_type' => 'admin',
-                'delete_by_id' => auth('admin')->id()
+                'delete_by_id' => auth('admin')->id(),
             ]);
         }
 
@@ -886,7 +886,7 @@ class ClientLeadManagmentController extends Controller
         if (!empty($lead_data_ids)) {
             LeadData::whereIn('id', $lead_data_ids)->update([
                 'delete_by_type' => 'admin',
-                'delete_by_id' => auth('admin')->id()
+                'delete_by_id' => auth('admin')->id(),
             ]);
         }
 
@@ -894,7 +894,7 @@ class ClientLeadManagmentController extends Controller
         if (!empty($lead_group_ids)) {
             LeadGroup::whereIn('lead_id', $lead_group_ids)->update([
                 'delete_by_type' => 'admin',
-                'delete_by_id' => auth('admin')->id()
+                'delete_by_id' => auth('admin')->id(),
             ]);
         }
 
@@ -905,7 +905,7 @@ class ClientLeadManagmentController extends Controller
         if ($is_reload == 1) {
             return response()->json([
                 'success' => 'Client Deleted Successfully',
-                'reload' => true
+                'reload' => true,
             ]);
         } else {
             return response()->json([
@@ -914,7 +914,6 @@ class ClientLeadManagmentController extends Controller
             ]);
         }
     }
-
 
     public function activity_save(Request $request)
     {
@@ -927,8 +926,8 @@ class ClientLeadManagmentController extends Controller
                 if (empty($request->attachments)) {
                     return response()->json([
                         'errors' => [
-                            'attachmentss' => ['The attachmentss field is required.']
-                        ]
+                            'attachmentss' => ['The attachmentss field is required.'],
+                        ],
                     ]);
                 }
             }
@@ -942,8 +941,8 @@ class ClientLeadManagmentController extends Controller
                     if (!isset($request->old_file_id) && count($filteredAttachments) == 0) {
                         return response()->json([
                             'errors' => [
-                                'attachmentss' => ['The attachmentss field is required.']
-                            ]
+                                'attachmentss' => ['The attachmentss field is required.'],
+                            ],
                         ]);
                     }
                 }
@@ -961,7 +960,7 @@ class ClientLeadManagmentController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        $activity = new LeadActivity();
+        $activity = new LeadActivity;
         if ($request->id && !empty($request->id)) {
             $activity = $activity->findOrfail($request->id);
             $msg = [
@@ -1012,8 +1011,8 @@ class ClientLeadManagmentController extends Controller
                             ->where('file_name', $value->getClientOriginalName())
                             ->first();
                         if (!$existingAttachment) {
-                            $file = fileManagerUploadFile($value, 'uploads/' . $folder_name . '/');
-                            $LeadActivityAttachments = new LeadActivityAttachments();
+                            $file = fileManagerUploadFile($value, 'uploads/'.$folder_name.'/');
+                            $LeadActivityAttachments = new LeadActivityAttachments;
                             $LeadActivityAttachments->file_name = $value->getClientOriginalName();
                             $LeadActivityAttachments->activity_id = $activity->id;
                             $LeadActivityAttachments->file_url = $file;
@@ -1030,7 +1029,7 @@ class ClientLeadManagmentController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error activity: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error activity: '.$e->getMessage()], 500);
         }
     }
 
@@ -1374,7 +1373,6 @@ class ClientLeadManagmentController extends Controller
             ];
         }
 
-
         return response()->json(['template' => view('admin.client_leads_management.include.follow_ups', $data)->render(), 'type' => $request->type]);
     }
 
@@ -1411,7 +1409,6 @@ class ClientLeadManagmentController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-
         $leadIds = $request->lead_ids;
 
         LeadClient::whereIn('id', $leadIds)->update([
@@ -1428,7 +1425,6 @@ class ClientLeadManagmentController extends Controller
         return response()->json($msg);
     }
 
-
     // send_lead_to_discord
     public function send_lead_to_discord_old(Request $request)
     {
@@ -1442,7 +1438,6 @@ class ClientLeadManagmentController extends Controller
                 $lead = LeadClient::find($leadId);
                 $leadMessage = "\n- Mobile Number: https://wa.me/+65{$lead->mobile_number}";
                 $leadMessage .= "\n- Name: {$lead->name}";
-
 
                 $url = $lead->discord_link;
                 $this->send_discord_msg($url, $leadMessage);
@@ -1462,8 +1457,6 @@ class ClientLeadManagmentController extends Controller
     }
     // send_lead_to_discord
 
-
-
     /**
      * Send Lead to Discord
      *
@@ -1473,7 +1466,6 @@ class ClientLeadManagmentController extends Controller
      * Author: Muhammad Wajahat
      * Date: Saturday, 4 January 2025
      */
-
     public function send_lead_to_discord(Request $request)
     {
 
@@ -1488,14 +1480,14 @@ class ClientLeadManagmentController extends Controller
         // Validate the send type
         if (!in_array($send_type, ['immediate', 'with_delay'])) {
             return response()->json([
-                'message' => 'Invalid Send Type'
+                'message' => 'Invalid Send Type',
             ], 400);
         }
 
         // Validate that lead IDs are provided as an array
         if (!is_array($lead_ids)) {
             return response()->json([
-                'message' => 'Lead IDs must be an array'
+                'message' => 'Lead IDs must be an array',
             ], 400);
         }
 
@@ -1540,17 +1532,17 @@ class ClientLeadManagmentController extends Controller
                 $response_msg .= "Total $success lead(s) sent successfully.<br>";
             }
             if (count($failed) > 0) {
-                $response_msg .= 'Total ' . count($failed) . ' lead(s) failed to send.<br>';
+                $response_msg .= 'Total '.count($failed).' lead(s) failed to send.<br>';
                 $response_msg .= 'Failed Reason:<br>';
 
                 foreach ($failed as $text) {
-                    $response_msg .= $text . '<br>';
+                    $response_msg .= $text.'<br>';
                 }
             }
 
             // Return the final response
             return response()->json([
-                'message' => $response_msg
+                'message' => $response_msg,
             ], 200);
         }
 

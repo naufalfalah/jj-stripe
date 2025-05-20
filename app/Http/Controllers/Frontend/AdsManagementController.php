@@ -4,25 +4,23 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Ads;
-use App\Models\Admin;
-use App\Models\ClientWallet;
-use App\Models\Transections;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Str;
-use App\Models\TaxCharge;
-use App\Models\LeadClient;
 use App\Models\AdsInvoice;
 use App\Models\AgentDetail;
 use App\Models\ClientTour;
+use App\Models\ClientWallet;
+use App\Models\LeadClient;
 use App\Models\SubAccount;
 use App\Models\Tour;
+use App\Models\Transections;
 use App\Models\User;
 use App\Models\UserSubAccount;
 use App\Traits\AdsSpentTrait;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class AdsManagementController extends Controller
 {
@@ -40,6 +38,7 @@ class AdsManagementController extends Controller
                 })
                 ->addColumn('type', function ($data) {
                     $types = explode(',', $data->type);
+
                     return Str::limit(ads_type_text($types), 30, '...');
                 })
                 ->addColumn('status', function ($data) {
@@ -57,6 +56,7 @@ class AdsManagementController extends Controller
                         } else {
                             $budget = $data->daily_budget * 30;
                         }
+
                         return get_price($budget);
                     } else {
                         return get_price($data->daily_budget);
@@ -103,6 +103,7 @@ class AdsManagementController extends Controller
             'tour' => $tour ?? null,
             'client_tour' => $client_tour ?? null,
         ];
+
         return view('client.ads_management.index', $data);
     }
 
@@ -151,14 +152,11 @@ class AdsManagementController extends Controller
             'edit' => Ads::where('id', hashids_decode($id))
                 ->whereIn('status', ['pending', 'reject'])
                 ->first(),
-            'nav_tab' => 'ads_add'
+            'nav_tab' => 'ads_add',
         ];
+
         return view('client.ads_management.add_new', $data);
     }
-
-
-
-
 
     public function save(Request $request)
     {
@@ -175,7 +173,7 @@ class AdsManagementController extends Controller
             $daily_budget = number_format($request->spend_amount, 2);
             $monthly_budget = number_format($request->spend_amount * 30, 2);
         }
-        
+
         $client = auth('web')->id();
         $wallet = ClientWallet::where('client_id', $client)->where('status', 'completed');
         $check_balance = ($wallet->sum('amount_in') - $wallet->sum('amount_out'));
@@ -211,7 +209,7 @@ class AdsManagementController extends Controller
         }
         $rules = [
             'title' => 'required',
-            'spend_amount' => 'required|integer|min:1'
+            'spend_amount' => 'required|integer|min:1',
         ];
         $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
@@ -220,7 +218,7 @@ class AdsManagementController extends Controller
         // Start a database transaction
         DB::beginTransaction();
         try {
-            $ads_add = new Ads();
+            $ads_add = new Ads;
             $domian_hosting_pay = 0;
             if ($request->id && !empty($request->id)) {
                 $ads_add = $ads_add->findOrfail($request->id);
@@ -278,8 +276,7 @@ class AdsManagementController extends Controller
                     $add_transaction->save();
                     $ads_add->is_hosting_pay = 1;
                 }
-                
-                
+
                 $msg = [
                     'success' => 'Ads Updated Successfully',
                     'redirect' => route('user.ads.all'),
@@ -356,7 +353,6 @@ class AdsManagementController extends Controller
             //     $add_transaction->save();
             // }
 
-
             // Check if user has run the tour 'start 1'
             $tour = Tour::firstOrCreate(['code' => 'START_1'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
@@ -373,8 +369,9 @@ class AdsManagementController extends Controller
         } catch (\Exception $e) {
             // Something went wrong, rollback the transaction
             DB::rollback();
+
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -391,8 +388,7 @@ class AdsManagementController extends Controller
     {
         $ads_delete = Ads::hashidFind($id);
 
-
-        $wallet = new ClientWallet();
+        $wallet = new ClientWallet;
         $wallet->client_id = $ads_delete->client_id;
         $wallet->ads_id = $ads_delete->id;
         $wallet->amount_in = $ads_delete->spend_amount;
@@ -407,7 +403,6 @@ class AdsManagementController extends Controller
         $add_transaction->topup_type = 'back_to_main_wallet';
         $add_transaction->status = 'completed';
         $add_transaction->save();
-
 
         $ads_delete->delete();
 
@@ -474,7 +469,7 @@ class AdsManagementController extends Controller
             'remaining_balance' => $remaining_amount,
             'total_ppc_leads' => $get_ppc_leads,
             'this_weak_payment' => $this_weak_payment,
-            'dates_text' => "From: {$weekStartDate} - To: {$weekEndDate}"
+            'dates_text' => "From: {$weekStartDate} - To: {$weekEndDate}",
         ];
 
         return view('client.ads_management.view_progress')->with($data);
@@ -509,6 +504,7 @@ class AdsManagementController extends Controller
                 return $lead->lead_data->map(function ($item) {
                     $key = Str::limit($item->key, 10);
                     $value = Str::limit($item->value, 10);
+
                     return "<span>$key: $value</span>";
                 })->implode('<br>');
             })
@@ -519,7 +515,7 @@ class AdsManagementController extends Controller
                     'email' => $lead->email,
                     'mobile_number' => $lead->mobile_number,
                     'admin_status' => $lead->admin_status,
-                    'lead_data' => $lead->lead_data
+                    'lead_data' => $lead->lead_data,
                 ]);
                 $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
                     ";
@@ -532,7 +528,7 @@ class AdsManagementController extends Controller
                         'registration_start_date' => $agent_detail->registration_start_date ?? '-',
                         'registration_end_date' => $agent_detail->registration_end_date ?? '-',
                         'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
-                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-'
+                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-',
                     ]);
                     $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
                 }
@@ -540,14 +536,14 @@ class AdsManagementController extends Controller
                 return $actionsHtml;
             })
 
-
             ->addColumn('admin_status', function ($lead) use ($enum_values) {
-                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="' . $lead->id . '">';
+                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="'.$lead->id.'">';
                 foreach ($enum_values as $value) {
                     $selected = $lead->admin_status == $value ? 'selected' : '';
                     $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
                 }
                 $dropdown .= '</select>';
+
                 return $dropdown;
             })
             ->filter(function ($query) {
@@ -568,7 +564,7 @@ class AdsManagementController extends Controller
 
         if (!$lead_client) {
             return response()->json([
-                'error' => 'Lead not found.'
+                'error' => 'Lead not found.',
             ], 404);
         }
 
@@ -607,7 +603,7 @@ class AdsManagementController extends Controller
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -630,7 +626,7 @@ class AdsManagementController extends Controller
 
     private function send_wp_message($client_number, $message)
     {
-       
+
         $curl = curl_init();
         $api_key = config('app.wp_api_key');
         curl_setopt_array($curl, [
@@ -645,22 +641,23 @@ class AdsManagementController extends Controller
             CURLOPT_POSTFIELDS => json_encode([
                 'to_number' => $client_number,
                 'from_number' => '+6589469107',
-                'text' => $message
+                'text' => $message,
             ]),
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'X-User-API-Key: ' . $api_key
+                'X-User-API-Key: '.$api_key,
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
 
         if (curl_errno($curl)) {
-            echo 'Curl error: ' . curl_error($curl);
+            echo 'Curl error: '.curl_error($curl);
         }
 
         curl_close($curl);
+
         return $response;
     }
 }

@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\AdsInvoice;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class AdsReportController extends Controller
@@ -17,7 +16,7 @@ class AdsReportController extends Controller
             return DataTables::of(AdsInvoice::query()->where('client_id', $auth_id)->latest())
                 ->addIndexColumn()
                 ->addColumn('invoice_id', function ($data) {
-                    return '00062' . $data->id ;
+                    return '00062'.$data->id;
                 })
                 ->addColumn('invoice_date', function ($data) {
                     return $data->invoice_date;
@@ -37,19 +36,20 @@ class AdsReportController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['invoice_date','total_amount'], request()->input('search'));
+                            $search_query->whereLike(['invoice_date', 'total_amount'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
         $data = [
             'breadcrumb' => 'Report',
             'title' => 'Report',
         ];
+
         return view('client.report.index')->with($data);
     }
 
@@ -67,6 +67,7 @@ class AdsReportController extends Controller
             'title' => 'Invoice',
             'report' => $adsInvoice,
         ];
+
         return view('client.report.invoice')->with($data);
     }
 }

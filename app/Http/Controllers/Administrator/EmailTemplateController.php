@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers\Administrator;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\EmailTemplate;
+use App\Models\LeadActivity;
 use App\Models\LeadClient;
 use App\Models\TempActivity;
-use App\Models\LeadActivity;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Str;
-use App\Helpers\ActivityLogHelper;
-use App\Models\User;
+use Yajra\DataTables\Facades\DataTables;
 
 class EmailTemplateController extends Controller
 {
@@ -42,6 +41,7 @@ class EmailTemplateController extends Controller
                     )
                     ->latest();
             }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('client_name', function ($data) {
@@ -57,7 +57,8 @@ class EmailTemplateController extends Controller
                 })
                 ->addColumn('sent', function ($data) {
                     $count = $data->message_activity->count();
-                    return $count > 0 ? $count . ' times' : '-';
+
+                    return $count > 0 ? $count.' times' : '-';
                 })
                 ->addColumn('last_sent', function ($data) {
                     return $data->message_activity->count() > 0
@@ -122,7 +123,7 @@ class EmailTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $email_template = new EmailTemplate();
+            $email_template = new EmailTemplate;
 
             if ($request->id && !empty($request->id)) {
                 $email_template = $email_template->findOrfail($request->id);
@@ -180,7 +181,7 @@ class EmailTemplateController extends Controller
 
             // Log or handle the exception as needed
             return response()->json(
-                ['error' => 'Error lead: ' . $e->getMessage()],
+                ['error' => 'Error lead: '.$e->getMessage()],
                 500
             );
         }
@@ -202,11 +203,10 @@ class EmailTemplateController extends Controller
         }
 
         $data = [
-            'breadcrumb' =>
-                '<span title="' .
-                @$email_template->title .
-                '">' .
-                Str::limit(@$email_template->title, 25) .
+            'breadcrumb' => '<span title="'.
+                @$email_template->title.
+                '">'.
+                Str::limit(@$email_template->title, 25).
                 '</span>',
             'title' => 'Template Detail',
             'data' => @$email_template,
@@ -216,6 +216,7 @@ class EmailTemplateController extends Controller
             )->get(['id', 'name', 'email', 'mobile_number']),
             'send_email' => $send_email,
         ];
+
         return view('admin.email_template.temp_detail', $data);
     }
 
@@ -248,11 +249,11 @@ class EmailTemplateController extends Controller
 
         DB::beginTransaction();
         try {
-            $copy_email_template = new EmailTemplate();
+            $copy_email_template = new EmailTemplate;
 
             $copy_email_template->client_id = auth('admin')->id();
             $copy_email_template->title =
-                'Copy of ' . $request->copy_data['title'];
+                'Copy of '.$request->copy_data['title'];
             $copy_email_template->description =
                 $request->copy_data['description'];
             if (
@@ -277,7 +278,7 @@ class EmailTemplateController extends Controller
             DB::rollback();
 
             return response()->json(
-                ['error' => 'Error lead: ' . $e->getMessage()],
+                ['error' => 'Error lead: '.$e->getMessage()],
                 500
             );
         }
@@ -306,7 +307,7 @@ class EmailTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $email_activity = new TempActivity();
+            $email_activity = new TempActivity;
 
             $email_activity->template_id = $request->temp_id;
             $email_activity->client_id = $request->lead_id;
@@ -314,7 +315,7 @@ class EmailTemplateController extends Controller
             $email_activity->activity_route = 'admin';
             $email_activity->save();
 
-            $email_lead_activity = new LeadActivity();
+            $email_lead_activity = new LeadActivity;
 
             $email_lead_activity->lead_client_id = $request->lead_id;
             $email_lead_activity->title = $request->title;
@@ -345,7 +346,7 @@ class EmailTemplateController extends Controller
 
             // Log or handle the exception as needed
             return response()->json(
-                ['error' => 'Error Email Template: ' . $e->getMessage()],
+                ['error' => 'Error Email Template: '.$e->getMessage()],
                 500
             );
         }

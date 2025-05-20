@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClientMessageTemplate;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use App\Models\TaxCharge;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use App\Models\WpMessageTemplate;
 use App\Models\TopupSetting;
+use App\Models\User;
+use App\Models\WpMessageTemplate;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class SettingController extends Controller
 {
@@ -51,7 +51,7 @@ class SettingController extends Controller
 
         try {
 
-            $upd_tax_charges = new TaxCharge();
+            $upd_tax_charges = new TaxCharge;
 
             if (isset($request->charges_upd) && !empty($request->charges_upd)) {
                 $upd_tax_charges = $upd_tax_charges->find($request->charges_upd);
@@ -64,7 +64,7 @@ class SettingController extends Controller
 
             $msg = [
                 'success' => 'Tax & Vat Charges Saved Successfully',
-                'reload' => true
+                'reload' => true,
             ];
 
             // Commit the transaction
@@ -76,7 +76,7 @@ class SettingController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error Tax & Vat charges: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error Tax & Vat charges: '.$e->getMessage()], 500);
         }
     }
 
@@ -104,7 +104,7 @@ class SettingController extends Controller
 
         $rules = [
             'wp_message' => 'required',
-            'from_number' => 'nullable|integer'
+            'from_number' => 'nullable|integer',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -112,7 +112,7 @@ class SettingController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()]);
         }
-        
+
         DB::beginTransaction();
         try {
             WpMessageTemplate::updateOrCreate([
@@ -125,15 +125,18 @@ class SettingController extends Controller
             ]);
 
             DB::commit();
+
             return response()->json([
                 'success' => 'WhatsApp Message Template Saved Successfully',
-                'reload' => true
+                'reload' => true,
             ]);
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'WhatsApp Message Template: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'WhatsApp Message Template: '.$e->getMessage()], 500);
         }
     }
+
     public function assign_template_to_clients()
     {
 
@@ -189,7 +192,7 @@ class SettingController extends Controller
         DB::beginTransaction();
         try {
 
-            $topup_setting = new TopupSetting();
+            $topup_setting = new TopupSetting;
 
             if (isset($request->topup_upd) && !empty($request->topup_upd)) {
                 $topup_setting = $topup_setting->find($request->topup_upd);
@@ -203,7 +206,7 @@ class SettingController extends Controller
 
             $msg = [
                 'success' => 'Topup Saved Successfully',
-                'reload' => true
+                'reload' => true,
             ];
 
             // Commit the transaction
@@ -213,7 +216,7 @@ class SettingController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
 
-            return response()->json(['error' => 'Topup: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Topup: '.$e->getMessage()], 500);
         }
     }
 }

@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Frontend;
 
-use App\Helpers\TextHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AIVoiceChatRequest;
 use App\Models\AiContent;
 use App\Services\AIChatService;
 use App\Services\ElevenLabsService;
 use App\Services\GoogleTextToSpeechService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 
 class AIVoiceChatController extends Controller
 {
     protected $aiChatService;
+
     protected $elevenLabsService;
+
     protected $googleTextToSpeechService;
 
     public function __construct(AIChatService $aiChatService, ElevenLabsService $elevenLabsService, GoogleTextToSpeechService $googleTextToSpeechService)
@@ -39,6 +39,7 @@ class AIVoiceChatController extends Controller
             'title' => $title,
             'chats' => $chats,
         ];
+
         return view('client.ai-voice-chat.index', $data);
     }
 
@@ -48,7 +49,7 @@ class AIVoiceChatController extends Controller
             $aiContent = $this->aiChatService->generateMessage($request->message);
 
             // Generate text to speech
-            $audioFileName = "ai_content_{$aiContent->id}_audio_" . time() . '.mp3';
+            $audioFileName = "ai_content_{$aiContent->id}_audio_".time().'.mp3';
             $audioData = $this->googleTextToSpeechService->synthesizeSpeech($aiContent->text, $audioFileName);
 
             // Save audio

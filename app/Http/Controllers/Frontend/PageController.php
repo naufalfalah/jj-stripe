@@ -4,31 +4,30 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use App\Models\PageTemplate;
-use App\Models\PageWebsiteLink;
-use App\Models\PageYoutubeLink;
-use App\Models\PageTemplateGallery;
-use App\Models\TempActivity;
 use App\Models\LeadActivity;
 use App\Models\LeadClient;
+use App\Models\PageTemplate;
+use App\Models\PageTemplateGallery;
+use App\Models\PageWebsiteLink;
+use App\Models\PageYoutubeLink;
+use App\Models\TempActivity;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
+use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class PageController extends Controller
 {
-
     public function add_page($id)
     {
 
         $page_name = ucfirst(str_replace('_', ' ', $id));
         $data = [
-            'breadcrumb' => 'Add '. $page_name,
-            'title' => 'Add '. $page_name,
+            'breadcrumb' => 'Add '.$page_name,
+            'title' => 'Add '.$page_name,
             'page_name' => $id,
         ];
 
@@ -43,7 +42,6 @@ class PageController extends Controller
         $table = 'PageTemplate';
         ActivityLogHelper::save_activity_with_check($auth_id, $activity, $table);
 
-
         if ($request->ajax()) {
             return DataTables::of(PageTemplate::with('page_activity')->latest())
                 ->addIndexColumn()
@@ -55,7 +53,8 @@ class PageController extends Controller
                 })
                 ->addColumn('sent', function ($data) {
                     $count = $data->page_activity->count();
-                    return $count > 0 ? $count . ' times' : '-';
+
+                    return $count > 0 ? $count.' times' : '-';
                 })
                 ->addColumn('last_sent', function ($data) {
                     return $data->page_activity->count() > 0 ? $data->page_activity[0]->created_at->format('M d - h:i A') : '-';
@@ -70,9 +69,8 @@ class PageController extends Controller
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
-
 
         $data = [
             'breadcrumb_main' => 'Page Template',
@@ -94,7 +92,7 @@ class PageController extends Controller
                 'website_link.*' => 'url|nullable',
                 'youtube_title.*' => 'string|nullable',
                 'youtube_link.*' => 'url|nullable',
-                'pages_images.*' => 'file|mimes:png,jpeg,jpg|nullable'
+                'pages_images.*' => 'file|mimes:png,jpeg,jpg|nullable',
             ];
 
             $validator = Validator::make($request->all(), $rules);
@@ -135,7 +133,7 @@ class PageController extends Controller
                         'reload' => true,
                     ];
                 } else {
-                    $pageTemplate = new PageTemplate();
+                    $pageTemplate = new PageTemplate;
                     $msg = [
                         'success' => 'Page Created Successfully',
                         'reload' => true,
@@ -154,7 +152,7 @@ class PageController extends Controller
                     }
                     foreach ($request->website_title as $key => $title) {
                         if (!empty($title) && !empty($request->website_link[$key])) {
-                            $pageWebsiteLink = new PageWebsiteLink();
+                            $pageWebsiteLink = new PageWebsiteLink;
                             $pageWebsiteLink->page_id = $pageTemplate->id;
                             $pageWebsiteLink->link_title = $title;
                             $pageWebsiteLink->website_link = $request->website_link[$key];
@@ -169,7 +167,7 @@ class PageController extends Controller
                     }
                     foreach ($request->youtube_title as $key => $title) {
                         if (!empty($title) && !empty($request->youtube_link[$key])) {
-                            $pageYoutubeLink = new PageYoutubeLink();
+                            $pageYoutubeLink = new PageYoutubeLink;
                             $pageYoutubeLink->page_id = $pageTemplate->id;
                             $pageYoutubeLink->link_title = $title;
                             $pageYoutubeLink->youtube_link = $request->youtube_link[$key];
@@ -193,7 +191,7 @@ class PageController extends Controller
                             $pageTemplate->save();
                         }
 
-                        $pageTemplateGallery = new PageTemplateGallery();
+                        $pageTemplateGallery = new PageTemplateGallery;
                         $pageTemplateGallery->page_id = $pageTemplate->id;
                         $pageTemplateGallery->title = $originalName;
                         $pageTemplateGallery->images = $imgPath;
@@ -209,7 +207,8 @@ class PageController extends Controller
             return response()->json($msg);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Page Creation: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'Page Creation: '.$e->getMessage()], 500);
         }
     }
 
@@ -226,7 +225,6 @@ class PageController extends Controller
 
         $view_multiple_time = TempActivity::with('lead_client')->where('template_id', $page_template->id)->get();
 
-
         $currentDateTime = date('Y-m-d H:i:s');
         $oneWeekAgoDateTime = date('Y-m-d H:i:s', strtotime('-7 days'));
         $page_details = DB::select(DB::raw('
@@ -240,7 +238,7 @@ class PageController extends Controller
             WHERE template_id = :template_id;'), [
             'seven_days_ago' => $seven_days_ago,
             'currentDateTime' => $currentDateTime,
-            'template_id' => hashids_decode($id)
+            'template_id' => hashids_decode($id),
         ]);
         // dd($page_details);
         $data = [
@@ -308,7 +306,6 @@ class PageController extends Controller
         $auth_id = auth('web')->id();
         ActivityLogHelper::save_activity($auth_id, 'Page Send', 'PageTemplate');
 
-
         $rules = [
             'client' => 'required',
         ];
@@ -323,7 +320,7 @@ class PageController extends Controller
         DB::beginTransaction();
 
         try {
-            $page_activity = new TempActivity();
+            $page_activity = new TempActivity;
 
             $page_activity->template_id = $request->page_id;
             $page_activity->client_id = $request->lead_id;
@@ -331,8 +328,7 @@ class PageController extends Controller
             $page_activity->activity_route = 'web';
             $page_activity->save();
 
-
-            $page_lead_activity = new LeadActivity();
+            $page_lead_activity = new LeadActivity;
 
             $page_lead_activity->lead_client_id = $request->lead_id;
             $page_lead_activity->title = $request->title;
@@ -359,7 +355,7 @@ class PageController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -405,7 +401,7 @@ class PageController extends Controller
                 'breadcrumb' => 'Edit Event Page',
                 'title' => 'Edit Event Page',
                 'edit' => $page,
-                'page_name' => 'event_page'
+                'page_name' => 'event_page',
             ];
 
             return view('client.page_management.add_page', $data);
@@ -415,12 +411,11 @@ class PageController extends Controller
                 'breadcrumb' => 'Edit Image Gallery',
                 'title' => 'Edit Image Gallery',
                 'edit' => $page,
-                'page_name' => 'image_gallery'
+                'page_name' => 'image_gallery',
             ];
 
             return view('client.page_management.add_page', $data);
         }
 
     }
-
 }

@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers\Administrator;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use App\Models\PremissionType;
+use App\Models\LeadActivity;
+use App\Models\LeadClient;
+use App\Models\MessageTemplate;
+use App\Models\TempActivity;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use App\Models\AdminMessageTemplate;
-use App\Models\User;
-use App\Models\UserWhatsappMessageTemplate;
-use App\Helpers\ActivityLogHelper;
-use App\Models\MessageTemplate;
-use App\Models\LeadClient;
-use App\Models\TempActivity;
-use App\Models\LeadActivity;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class MessageTemplateController extends Controller
 {
@@ -47,6 +44,7 @@ class MessageTemplateController extends Controller
                     )
                     ->latest();
             }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('client_name', function ($data) {
@@ -62,7 +60,8 @@ class MessageTemplateController extends Controller
                 })
                 ->addColumn('sent', function ($data) {
                     $count = $data->message_activity->count();
-                    return $count > 0 ? $count . ' times' : '-';
+
+                    return $count > 0 ? $count.' times' : '-';
                 })
                 ->addColumn('last_sent', function ($data) {
                     return $data->message_activity->count() > 0
@@ -127,7 +126,7 @@ class MessageTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $message_template = new MessageTemplate();
+            $message_template = new MessageTemplate;
             if ($request->id && !empty($request->id)) {
                 $message_template = $message_template->findOrfail($request->id);
                 ActivityLogHelper::save_activity(
@@ -198,7 +197,7 @@ class MessageTemplateController extends Controller
 
             // Log or handle the exception as needed
             return response()->json(
-                ['error' => 'Error lead: ' . $e->getMessage()],
+                ['error' => 'Error lead: '.$e->getMessage()],
                 500
             );
         }
@@ -221,11 +220,10 @@ class MessageTemplateController extends Controller
         )->hashidFind($id);
 
         $data = [
-            'breadcrumb' =>
-                '<span title="' .
-                @$message_template->title .
-                '">' .
-                Str::limit(@$message_template->title, 25) .
+            'breadcrumb' => '<span title="'.
+                @$message_template->title.
+                '">'.
+                Str::limit(@$message_template->title, 25).
                 '</span>',
             $message_template->title,
             'title' => 'Template Detail',
@@ -236,6 +234,7 @@ class MessageTemplateController extends Controller
             )->get(['id', 'name', 'email', 'mobile_number']),
             'send_message' => $send_message,
         ];
+
         return view('admin.message_template.temp_detail', $data);
     }
 
@@ -268,11 +267,11 @@ class MessageTemplateController extends Controller
 
         DB::beginTransaction();
         try {
-            $copy_message_template = new MessageTemplate();
+            $copy_message_template = new MessageTemplate;
 
             $copy_message_template->client_id = auth('admin')->id();
             $copy_message_template->title =
-                'Copy of ' . $request->copy_data['title'];
+                'Copy of '.$request->copy_data['title'];
             $copy_message_template->description =
                 $request->copy_data['description'];
             if (
@@ -297,7 +296,7 @@ class MessageTemplateController extends Controller
             DB::rollback();
 
             return response()->json(
-                ['error' => 'Error lead: ' . $e->getMessage()],
+                ['error' => 'Error lead: '.$e->getMessage()],
                 500
             );
         }
@@ -326,7 +325,7 @@ class MessageTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $message_activity = new TempActivity();
+            $message_activity = new TempActivity;
 
             $message_activity->template_id = $request->temp_id;
             $message_activity->client_id = $request->lead_id;
@@ -334,7 +333,7 @@ class MessageTemplateController extends Controller
             $message_activity->activity_route = 'web';
             $message_activity->save();
 
-            $message_lead_activity = new LeadActivity();
+            $message_lead_activity = new LeadActivity;
 
             $message_lead_activity->lead_client_id = $request->lead_id;
             $message_lead_activity->title = $request->title;
@@ -365,7 +364,7 @@ class MessageTemplateController extends Controller
 
             // Log or handle the exception as needed
             return response()->json(
-                ['error' => 'Error lead: ' . $e->getMessage()],
+                ['error' => 'Error lead: '.$e->getMessage()],
                 500
             );
         }

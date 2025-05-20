@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Administrator;
 
+use App\Exports\LeadClientsExport;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Imports\LeadImport;
 use App\Models\LeadClient;
 use App\Models\User;
 use Carbon\Carbon;
-use App\Exports\LeadClientsExport;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Imports\LeadImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ExcelController extends Controller
 {
@@ -22,15 +22,15 @@ class ExcelController extends Controller
             'title' => 'Lead Export',
             'leads' => User::with('sub_account')->get(),
         ];
+
         return view('admin.export.index')->with($data);
     }
-
 
     public function export_to_excel(Request $request)
     {
         $rules = [
             'client' => 'required',
-            'daterange' => 'required'
+            'daterange' => 'required',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -48,14 +48,13 @@ class ExcelController extends Controller
             ->where('client_id', $request->client)
             ->whereBetween('created_at', [$start_date, $end_date])
             ->get();
-       
 
         $lead_array[] = [];
 
         foreach ($leadData as $lead) {
             $forCallStatus = Carbon::now()->diffInDays($lead->created_at) > 30 ? 'Please Check DNC' : 'Ready to Call';
             $additionalData = $lead->lead_data->map(function ($item) {
-                return $item->key . ': ' . $item->value;
+                return $item->key.': '.$item->value;
             })->implode(', ');
 
             $lead_array[] = [
@@ -66,16 +65,15 @@ class ExcelController extends Controller
                 'Additional Data' => $additionalData ?? '-',
                 'Lead Date & Time' => $lead->created_at->format('Y-m-d H:i:s') ?? '-',
                 'Status' => $lead->admin_status ?? '-',
-                'For Call Status' => $forCallStatus
+                'For Call Status' => $forCallStatus,
             ];
         }
 
         $client_data = User::with('sub_account')->where('id', $request->client)->first();
-        $fileName = $client_data->client_name . '_'.str_replace(' ', '_', $client_data->sub_account->sub_account_name).'.xlsx';
+        $fileName = $client_data->client_name.'_'.str_replace(' ', '_', $client_data->sub_account->sub_account_name).'.xlsx';
 
         return Excel::download(new LeadClientsExport($lead_array), $fileName);
     }
-
 
     public function import_leads(Request $request)
     {
@@ -98,7 +96,7 @@ class ExcelController extends Controller
 
             return response()->json(['success' => 'Leads imported successfully', 'reload' => true]);
         } catch (\Exception $e) {
-            return response()->json(['error', 'Error importing leads: ' . $e->getMessage()]);
+            return response()->json(['error', 'Error importing leads: '.$e->getMessage()]);
         }
     }
 
@@ -120,7 +118,7 @@ class ExcelController extends Controller
             CURLOPT_POSTFIELDS => http_build_query([
                 'domain_url' => $domain_url,
                 'mobile_number' => $mobile_number,
-                'status' => $status
+                'status' => $status,
             ]),
         ]);
 

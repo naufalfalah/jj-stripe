@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Administrator;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\Role;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -27,6 +25,7 @@ class EmployeeManagmentController extends Controller
             'title' => 'Add User',
             'roles' => Role::latest()->get(),
         ];
+
         return view('admin.user_management.add')->with($data);
     }
 
@@ -46,11 +45,10 @@ class EmployeeManagmentController extends Controller
             }
         }
 
-
         $rules = [
             'name' => 'required',
-            'username' => 'required|unique:admins,username,' . $request->id,
-            'email' => 'required|unique:admins,email,' . $request->id,
+            'username' => 'required|unique:admins,username,'.$request->id,
+            'email' => 'required|unique:admins,email,'.$request->id,
         ];
 
         if ($request->user_type == 'normal') {
@@ -70,28 +68,28 @@ class EmployeeManagmentController extends Controller
                 'required',
                 Rule::unique('admins')->where(function ($query) {
                     return $query->whereNull('deleted_at');
-                })
+                }),
             ];
             $rules['email'] = [
                 'required',
                 'email',
                 Rule::unique('admins')->where(function ($query) {
                     return $query->whereNull('deleted_at');
-                })
+                }),
             ];
         } else {
             $rules['username'] = [
                 'required',
                 Rule::unique('admins')->where(function ($query) {
                     return $query->whereNull('deleted_at');
-                })->ignore($request->id)
+                })->ignore($request->id),
             ];
             $rules['email'] = [
                 'required',
                 'email',
                 Rule::unique('admins')->where(function ($query) {
                     return $query->whereNull('deleted_at');
-                })->ignore($request->id)
+                })->ignore($request->id),
             ];
         }
 
@@ -105,7 +103,7 @@ class EmployeeManagmentController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        $user = new Admin();
+        $user = new Admin;
 
         if (isset($request->id) && !empty($request->id)) {
             $user = $user->find($request->id);
@@ -153,6 +151,7 @@ class EmployeeManagmentController extends Controller
         $user->user_type = $request->user_type;
         $user->added_by_id = auth('admin')->id();
         $user->save();
+
         return response()->json($msg);
     }
 
@@ -220,7 +219,7 @@ class EmployeeManagmentController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'password' => ['required', 'string', 'min:6','max:12', 'confirmed']
+            'password' => ['required', 'string', 'min:6', 'max:12', 'confirmed'],
         ]);
 
         if ($validator->fails()) {

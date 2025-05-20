@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\User;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class ForgetPasswordController extends Controller
 {
@@ -38,6 +38,7 @@ class ForgetPasswordController extends Controller
                 'redirect_route' => route('auth.add_new_pasword', $find_email->hashid),
             ];
             send_email('verify', $find_email->email, 'Chenge Password Request', $data);
+
             return redirect()->back()->with('success', 'Password reset link sent successfully. Check your email.');
         } else {
             return redirect()->back()->with('error', 'User with this email does not exist.');
@@ -50,6 +51,7 @@ class ForgetPasswordController extends Controller
             'title' => 'Set New Password',
             'user_id' => $id,
         ];
+
         return view('auth.passwords.reset', $data);
     }
 
@@ -57,7 +59,7 @@ class ForgetPasswordController extends Controller
     {
         $rules = [
             'password' => 'required|min:8|max:12|regex:/^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]+$/',
-            'confirm_password' => 'required|same:password'
+            'confirm_password' => 'required|same:password',
         ];
 
         $messages = [

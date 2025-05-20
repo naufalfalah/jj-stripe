@@ -14,8 +14,6 @@ use Yajra\DataTables\DataTables;
 class PushNotificationTemplateController extends Controller
 {
     /**
-     * @param Request $request
-     *
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
@@ -26,9 +24,11 @@ class PushNotificationTemplateController extends Controller
 
         if ($request->ajax()) {
             $pushNotificationTemplates = PushNotificationTemplate::all();
+
             return DataTables::of($pushNotificationTemplates)
                 ->addColumn('action', function ($pushNotificationTemplate) {
-                    $btn = '<a href="' . route('admin.setting.push-notification-templates.edit', $pushNotificationTemplate->id) . '" class="mx-2"><i class="fa-solid fa-pencil"></i></a>';
+                    $btn = '<a href="'.route('admin.setting.push-notification-templates.edit', $pushNotificationTemplate->id).'" class="mx-2"><i class="fa-solid fa-pencil"></i></a>';
+
                     return $btn;
                 })->rawColumns(['action'])->make(true);
         }
@@ -42,11 +42,6 @@ class PushNotificationTemplateController extends Controller
         return view('admin.settings.push_notification_templates.index', $data);
     }
 
-    /**
-     * @param PushNotificationTemplate $push_notification_template
-     *
-     * @return View
-     */
     public function edit(PushNotificationTemplate $push_notification_template): View
     {
         if (Auth::guard('admin')->user()->role_name != 'super_admin') {
@@ -63,12 +58,6 @@ class PushNotificationTemplateController extends Controller
         return view('admin.settings.push_notification_templates.edit', $data);
     }
 
-    /**
-     * @param PushNotificationTemplate $push_notification_template
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function update(PushNotificationTemplate $push_notification_template, Request $request): RedirectResponse
     {
         if (Auth::guard('admin')->user()->role_name != 'super_admin') {
@@ -80,6 +69,7 @@ class PushNotificationTemplateController extends Controller
         $push_notification_template->save();
 
         Alert::success('Success', 'Push Notification Template Saved');
+
         return redirect()->route('admin.setting.push-notification-templates.index');
     }
 }

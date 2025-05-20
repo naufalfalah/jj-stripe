@@ -12,26 +12,19 @@ use Illuminate\Support\Facades\Session;
 
 class FacebookAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $facebookService = new FacebookPostService();
+        $facebookService = new FacebookPostService;
         $url = $facebookService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->query('code');
 
-        $facebookService = new FacebookPostService();
+        $facebookService = new FacebookPostService;
         $authorization = $facebookService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -58,7 +51,6 @@ class FacebookAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

@@ -3,30 +3,28 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Agency;
-use App\Providers\RouteServiceProvider;
-use App\Models\User;
 use App\Models\Admin;
-use Illuminate\Foundation\Auth\RegistersUsers;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use App\Models\Industry;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
-use App\Traits\GoogleTrait;
-use Illuminate\Support\Facades\Auth;
-use App\Models\SubAccount;
-use App\Models\WpMessageTemplate;
+use App\Models\Agency;
 use App\Models\ClientMessageTemplate;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
+use App\Models\Industry;
+use App\Models\User;
 use App\Models\UserOtp;
+use App\Models\WpMessageTemplate;
+use App\Providers\RouteServiceProvider;
+use App\Traits\GoogleTrait;
 use App\Traits\PackageTrait;
+use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 
 class RegisterController extends Controller
 {
+    use GoogleTrait;
     use PackageTrait;
     /*
     |--------------------------------------------------------------------------
@@ -40,7 +38,7 @@ class RegisterController extends Controller
     */
 
     use RegistersUsers;
-    use GoogleTrait;
+
     /**
      * Where to redirect users after registration.
      *
@@ -61,18 +59,16 @@ class RegisterController extends Controller
     /**
      * Get a validator for an incoming registration request.
      *
-     * @param  array  $data
+     * @param array $data
      * @return \Illuminate\Contracts\Validation\Validator
      */
-
 
     /**
      * Create a new user instance after a valid registration.
      *
-     * @param  array  $data
+     * @param array $data
      * @return \App\Models\User
      */
-
     public function register(Request $request)
     {
         $rules = [
@@ -94,14 +90,14 @@ class RegisterController extends Controller
             return ['errors' => $validator->errors()];
         }
         try {
-            
+
             DB::beginTransaction();
 
             $create_user = new User;
             $create_user->client_name = $request->client_name;
             $create_user->phone_number = $request->phone_number;
             if ($request->agency == 'other') {
-                $agency = new Agency();
+                $agency = new Agency;
                 $agency->name = $request->other_agency_name;
                 $agency->status = 1;
                 $agency->save();
@@ -109,7 +105,7 @@ class RegisterController extends Controller
             } else {
                 $create_user->agency_id = $request->agency;
             }
-            
+
             $create_user->industry_id = $request->industry;
             $create_user->package = $request->package;
             $create_user->email = $request->email;
@@ -126,13 +122,13 @@ class RegisterController extends Controller
 
             $adminTemplate = WpMessageTemplate::latest()->first();
             if ($adminTemplate) {
-                $client_message_template = new ClientMessageTemplate();
+                $client_message_template = new ClientMessageTemplate;
                 $client_message_template->client_id = $create_user->id;
                 $client_message_template->message_template = $adminTemplate->wp_message;
                 $client_message_template->from_number = $adminTemplate->from_number;
                 $client_message_template->save();
             }
-            
+
             // $check_admin_account = Admin::where('user_type', 'admin')->where('role_name', 'super_admin')->whereNotNull('google_access_token')->count();
             // if($check_admin_account > 0){
             //     $create_client_sheet = $this->createNewSpreadsheet($request->client_name, $create_user->id);
@@ -140,7 +136,6 @@ class RegisterController extends Controller
             //     $create_user->save();
             // }
 
-            
             $createUser_otp = new UserOtp;
             $createUser_otp->user_id = $create_user->id;
             $createUser_otp->otp = rand(100000, 999999);
@@ -148,7 +143,7 @@ class RegisterController extends Controller
             $createUser_otp->save();
 
             DB::commit();
-            Log::info('Sending email to: ' . $create_user->email);
+            Log::info('Sending email to: '.$create_user->email);
             // Send OTP via Email
             $data = [
                 'otp' => $createUser_otp->otp,
@@ -160,7 +155,7 @@ class RegisterController extends Controller
                 $message->subject('Verify Your Email to Complete Registration');
             });
 
-            Log::info('Email sent to: ' . $create_user->email);
+            Log::info('Email sent to: '.$create_user->email);
             Log::info('Email Subject: Verify Your Email to Complete Registration');
 
             $msg = [
@@ -168,6 +163,7 @@ class RegisterController extends Controller
                 'redirect' => route('auth.otp.verify', ['id' => $create_user->hashid]),
 
             ];
+
             return response()->json($msg);
             // if (Auth::guard('web')->attempt(['email' => $request->email, 'password' => $request->password], $request->remember)) {
             //     $msg = [
@@ -193,6 +189,7 @@ class RegisterController extends Controller
         if (!$check) {
             return false;
         }
+
         return true;
     }
 
@@ -201,6 +198,7 @@ class RegisterController extends Controller
         $data = [
             'title' => 'Success Message',
         ];
+
         return view('auth.success_message', $data);
     }
 
@@ -210,15 +208,17 @@ class RegisterController extends Controller
             'title' => 'Set Password',
             'user_id' => $id,
         ];
+
         return view('auth.set_password', $data);
     }
 
     public function showRegistrationForm()
     {
         $data = [
-            'agencies' => Agency::where('status', 1)->where('added_by_id', '!=', 0)->latest()->get(['id','name']),
-            'industries' => Industry::latest()->get(['id','industries']),
+            'agencies' => Agency::where('status', 1)->where('added_by_id', '!=', 0)->latest()->get(['id', 'name']),
+            'industries' => Industry::latest()->get(['id', 'industries']),
         ];
+
         return view('auth.register', $data);
     }
 }

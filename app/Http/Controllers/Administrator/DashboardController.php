@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Administrator;
 use App\Constants\TaskConstant;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
-use App\Models\AdsInvoice;
 use App\Models\ChatMessage;
 use App\Models\ClientTimelog;
 use App\Models\FormActivity;
@@ -16,22 +15,18 @@ use App\Models\FormRequest;
 use App\Models\FormSubtask;
 use App\Models\LeadClient;
 use App\Models\MessageTemplate;
-use App\Models\User;
-use App\Models\SubAccount;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use App\Models\Notification;
 use App\Models\Project;
 use App\Models\PushNotificationTemplate;
-use App\Models\Transections;
+use App\Models\SubAccount;
+use App\Models\User;
 use App\Models\UserDeviceToken;
 use App\Services\CloudTalkService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -47,8 +42,9 @@ class DashboardController extends Controller
             $data = [
                 'breadcrumb' => 'Dashboard',
                 'title' => 'Dashboard',
-                'sub_account' => SubAccount::get()
+                'sub_account' => SubAccount::get(),
             ];
+
             return view('admin.dashboard')->with($data);
         } elseif (
             $user->role_name == 'Wordpress Team' ||
@@ -76,7 +72,7 @@ class DashboardController extends Controller
             $now = Carbon::now();
             $currentMonth = $now->month;
             $currentYear = $now->year;
-            $services = new CloudTalkService();
+            $services = new CloudTalkService;
             if ($request->ajax()) {
                 return $this->callHistoryDatatable($request);
             }
@@ -97,6 +93,7 @@ class DashboardController extends Controller
                 'tags' => $services->getTags(),
                 'clients' => $client_groups,
             ];
+
             return view('admin.dashboard-isa')->with($data);
         }
     }
@@ -152,7 +149,6 @@ class DashboardController extends Controller
         if ($request->hasFile('product_image')) {
             $rules['product_image'] = 'image|mimes:jpeg,png,jpg';
         }
-
 
         $validator = Validator::make($request->all(), $rules);
 
@@ -213,7 +209,7 @@ class DashboardController extends Controller
             [
                 'user_id' => auth('admin')->user()->id,
                 'user_type' => 'admin',
-                'device_token' => $request->device_token
+                'device_token' => $request->device_token,
             ]
         );
 
@@ -224,15 +220,17 @@ class DashboardController extends Controller
     {
         $notifications = Notification::where('user_id', auth('admin')->id())->where('user_type', 'admin')->latest()->limit(100);
         $unread = Notification::where('user_id', auth('admin')->id())->where('user_type', 'admin')->where('is_read', 0)->count();
+
         return response()->json([
             'count' => $unread,
-            'view_data' => view('components.include.admin_notification_list', ['notifications' => $notifications->get()])->render()
+            'view_data' => view('components.include.admin_notification_list', ['notifications' => $notifications->get()])->render(),
         ]);
     }
 
     public function update_notifications()
     {
         Notification::where('user_id', auth('admin')->id())->where('user_type', 'admin')->update(['is_read' => 1]);
+
         return response()->json(true);
     }
 
@@ -246,7 +244,7 @@ class DashboardController extends Controller
         return response()->json([
             'status' => $sub->status,
             'success' => 'The status has been updated successfully.',
-            'reload' => true
+            'reload' => true,
         ]);
     }
 
@@ -257,6 +255,7 @@ class DashboardController extends Controller
             'breadcrumb' => 'Sub Account',
             'title' => 'Sub_Account',
         ];
+
         return view('admin.sub_account')->with($data);
     }
 
@@ -310,9 +309,10 @@ class DashboardController extends Controller
     {
         if ($request->ajax()) {
             $timelogs = ClientTimelog::with(['admin', 'client'])->get();
+
             return DataTables::of($timelogs)
                 ->addColumn('admin_name', function ($row) {
-                    return $row->admin->name . ' ' . $row->admin->email;
+                    return $row->admin->name.' '.$row->admin->email;
                 })
                 ->addColumn('client_name', function ($row) {
                     return $row->client->client_name;
@@ -320,11 +320,6 @@ class DashboardController extends Controller
         }
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function show_task(Request $request): JsonResponse
     {
         $taskId = $request->input('task_id');
@@ -349,8 +344,8 @@ class DashboardController extends Controller
 
         $to = [
             ['form_request_id', $taskId],
-            ['to_user_id', (int)$userId],
-            ['to_user_type', $type]
+            ['to_user_id', (int) $userId],
+            ['to_user_type', $type],
         ];
 
         $messages = ChatMessage::with('user')->where($from);
@@ -393,7 +388,7 @@ class DashboardController extends Controller
                 'time' => $timeFormatted,
                 'formatted_created_at' => $formattedCreatedAt,
                 'type_name' => $chat->user->table_name,
-                'count' => $count
+                'count' => $count,
             ];
         }
 
@@ -408,8 +403,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param Request $request
-     *
      * @return RedirectResponse
      */
     public function store_task(Request $request)
@@ -418,15 +411,10 @@ class DashboardController extends Controller
             'to_team' => auth('admin')->user()->team,
         ]);
         FormRequest::create($request->all());
-        
+
         return redirect()->back();
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function update_task(Request $request): JsonResponse
     {
         $formRequest = FormRequest::find($request->task_id);
@@ -443,11 +431,10 @@ class DashboardController extends Controller
             $formRequest->order = $request->order;
         }
 
-        $formActivity = new FormActivity();
+        $formActivity = new FormActivity;
         $formActivity = $formActivity->where('form_request_id', $request->task_id);
         $formActivity = $formActivity->where('admin_id', auth('admin')->user()->id);
         $formActivity = $formActivity->where('created_at', '>=', Carbon::now()->subMinutes(5));
-
 
         if ($request->client_id) {
             $client = User::find($request->client_id);
@@ -617,20 +604,16 @@ class DashboardController extends Controller
         }
 
         $formRequest->save();
+
         return response()->json([
             'data' => $request->all(),
-            'message' => 'Form request updated successfully'
+            'message' => 'Form request updated successfully',
         ]);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function store_subtask(Request $request): JsonResponse
     {
-        $formSubtask = new FormSubtask();
+        $formSubtask = new FormSubtask;
         $formSubtask->form_request_id = (int) $request->task_id;
         $formSubtask->priority = 3;
         $formSubtask->done = 0;
@@ -647,15 +630,10 @@ class DashboardController extends Controller
 
         return response()->json([
             'data' => $formSubtask,
-            'message' => 'Form request subtask created successfully'
+            'message' => 'Form request subtask created successfully',
         ]);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function show_subtask(Request $request): JsonResponse
     {
         $subtaskId = $request->input('subtask_id');
@@ -666,11 +644,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function update_subtask(Request $request): JsonResponse
     {
         $formSubtask = FormSubtask::find((int) $request->subtask_id);
@@ -723,17 +696,13 @@ class DashboardController extends Controller
         }
 
         $formSubtask->save();
+
         return response()->json([
             'data' => $request->all(),
-            'message' => 'Form subtask updated successfully'
+            'message' => 'Form subtask updated successfully',
         ]);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return JsonResponse
-     */
     public function destroy_subtask(Request $request): JsonResponse
     {
         $formSubtask = FormSubtask::find((int) $request->subtask_id);
@@ -748,15 +717,15 @@ class DashboardController extends Controller
         ]);
 
         $formSubtask->delete();
+
         return response()->json([
             'data' => $request->all(),
-            'message' => 'Form subtask deleted successfully'
+            'message' => 'Form subtask deleted successfully',
         ]);
     }
 
     /**
      * @param string $priority
-     *
      * @return string $label
      */
     public function getPriorityLabel($priority): string

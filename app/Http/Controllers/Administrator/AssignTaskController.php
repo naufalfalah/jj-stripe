@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
 use App\Models\Designer;
 use App\Models\DesignerImage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Yajra\DataTables\Facades\DataTables;
 
 class AssignTaskController extends Controller
 {
@@ -34,8 +34,8 @@ class AssignTaskController extends Controller
                     return $data->description ?? '';
                 })
                 ->addColumn('image', function ($data) {
-                    return '<img src="' .
-                        check_file($data->image, 'user') .
+                    return '<img src="'.
+                        check_file($data->image, 'user').
                         '" class="rounded-circle shadow" style="width: 50px; height: 50px;" alt="" />';
                 })
                 ->addColumn('action', function ($data) {
@@ -103,7 +103,7 @@ class AssignTaskController extends Controller
 
             $user = $isUpdate
                 ? Designer::findOrfail(hashids_decode($request->id))
-                : new Designer();
+                : new Designer;
 
             if ($isUpdate && !$user) {
                 return response()->json(
@@ -145,7 +145,7 @@ class AssignTaskController extends Controller
         } catch (\Exception $e) {
             return response()->json(
                 [
-                    'error' => 'An error occurred: ' . $e->getMessage(),
+                    'error' => 'An error occurred: '.$e->getMessage(),
                 ],
                 500
             );
@@ -189,8 +189,8 @@ class AssignTaskController extends Controller
                     return $data->description ?? '';
                 })
                 ->addColumn('image', function ($data) {
-                    return '<img src="' .
-                        check_file($data->image, 'user') .
+                    return '<img src="'.
+                        check_file($data->image, 'user').
                         '" class="rounded-circle shadow" style="width: 50px; height: 50px;" alt="" />';
                 })
                 ->addColumn('action', function ($data) {
@@ -235,9 +235,10 @@ class AssignTaskController extends Controller
                 $image->move($filePath, $fileName);
                 DesignerImage::create([
                     'designer_id' => $request->designer_id,
-                    'image_path' => 'uploads/designer_images/' . $fileName,
+                    'image_path' => 'uploads/designer_images/'.$fileName,
                 ]);
             }
+
             return response()->json([
                 'success' => 'Images Uploaded Successfully',
                 'reload' => true,
@@ -246,7 +247,7 @@ class AssignTaskController extends Controller
 
         return response()->json(
             [
-                'error' => 'An error occurred: ' . $e->getMessage(),
+                'error' => 'An error occurred: '.$e->getMessage(),
             ],
             500
         );
@@ -265,8 +266,9 @@ class AssignTaskController extends Controller
                 ->addIndexColumn()
                 ->addColumn('image_path', function ($data) {
                     $imageUrl = asset($data->image_path);
-                    return '<img src="' .
-                        $imageUrl .
+
+                    return '<img src="'.
+                        $imageUrl.
                         '" alt="Image" style="width: 100px; height: auto;">';
                 })
                 ->addColumn('created_at', function ($data) {
@@ -277,9 +279,10 @@ class AssignTaskController extends Controller
                         'admin.assign_task.designer_image_delete',
                         $data->hashid
                     );
+
                     return '<div class="btn-group">
-                            <a href="javascript:void(0)" class="text-danger" onclick="ajaxRequest(this)" data-url="' .
-                        $deleteUrl .
+                            <a href="javascript:void(0)" class="text-danger" onclick="ajaxRequest(this)" data-url="'.
+                        $deleteUrl.
                         '" data-toggle="tooltip" data-placement="top" title="" data-original-title="Delete">
                                 <i class="bi bi-trash-fill"></i>
                             </a>

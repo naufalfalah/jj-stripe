@@ -23,6 +23,7 @@ class AIChatController extends Controller
             'breadcrumb' => $title,
             'title' => $title,
         ];
+
         return view('client.ai-chat.index', $data);
     }
 

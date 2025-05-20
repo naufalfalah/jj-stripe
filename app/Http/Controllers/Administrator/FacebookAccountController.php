@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\FacebookAccessToken;
+use Illuminate\Support\Facades\Auth;
 use Socialite;
 
 class FacebookAccountController extends Controller

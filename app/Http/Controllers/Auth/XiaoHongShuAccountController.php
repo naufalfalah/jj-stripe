@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\UserSocialMedia;
 use App\Services\XiaoHongShuService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,26 +11,19 @@ use Illuminate\Support\Facades\Session;
 
 class XiaoHongShuAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $xiaoHongShuService = new XiaoHongShuService();
+        $xiaoHongShuService = new XiaoHongShuService;
         $url = $xiaoHongShuService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->input('code');
 
-        $xiaoHongShuService = new XiaoHongShuService();
+        $xiaoHongShuService = new XiaoHongShuService;
         $authorization = $xiaoHongShuService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -43,11 +35,10 @@ class XiaoHongShuAccountController extends Controller
             $route = 'user.social_account.index';
         }
 
-
         if (!isset($authorization['access_token']) || !$authorization['access_token']) {
             return redirect()->route($route)->with('error', 'Oauth failed');
         }
-        
+
         $user = User::find($clientId);
         $user->xiao_hong_shu_access_token = json_encode($authorization);
         $user->save();
@@ -59,7 +50,6 @@ class XiaoHongShuAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

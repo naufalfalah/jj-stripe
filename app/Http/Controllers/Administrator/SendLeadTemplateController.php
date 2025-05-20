@@ -3,15 +3,13 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
-use App\Models\SubAccount;
-use App\Models\User;
 use App\Models\Ads;
 use App\Models\LeadClient;
 use App\Models\LeadData;
+use App\Models\SubAccount;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SendLeadTemplateController extends Controller
 {
@@ -55,10 +53,9 @@ class SendLeadTemplateController extends Controller
         $client = hashids_decode($request->client);
         $ads = Ads::with('client')->where('client_id', $client)->where('sub_account_id', $sub_account)->first();
 
-       
         $leadMessage = 'New Lead Please take note!
 ===========================
-Hello ' . $ads->client->client_name . ', you have a new lead:';
+Hello '.$ads->client->client_name.', you have a new lead:';
         if (!empty($request->user_name)) {
             $leadMessage .= "\n- Name: {$request->user_name}";
         }
@@ -67,7 +64,6 @@ Hello ' . $ads->client->client_name . ', you have a new lead:';
         }
         if (!empty($request->mobile_number)) {
             $leadMessage .= "\n- Mobile Number: https://wa.me/+65{$request->mobile_number}";
-
 
         }
 
@@ -81,7 +77,7 @@ Hello ' . $ads->client->client_name . ', you have a new lead:';
         $url = $ads->discord_link;
         $send_descord_msg = $this->send_discord_msg($url, $leadMessage);
 
-        $ads_lead = new LeadClient();
+        $ads_lead = new LeadClient;
         $ads_lead->client_id = $ads->client_id;
         $ads_lead->name = $request->user_name ?? '';
         $ads_lead->email = $request->email ?? '';
@@ -125,6 +121,7 @@ Hello ' . $ads->client->client_name . ', you have a new lead:';
             'success' => 'Lead add Successfully',
             'reload' => true,
         ];
+
         return response()->json($msg);
     }
 
@@ -133,7 +130,7 @@ Hello ' . $ads->client->client_name . ', you have a new lead:';
         $post_array = [
             'content' => $data,
             'embeds' => null,
-            'attachments' => []
+            'attachments' => [],
         ];
         $curl = curl_init();
 
@@ -149,9 +146,9 @@ Hello ' . $ads->client->client_name . ', you have a new lead:';
             CURLOPT_POSTFIELDS => json_encode($post_array),
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'Cookie: __dcfduid=8ec71370974011ed9aeb96cee56fe4d4; __sdcfduid=8ec71370974011ed9aeb96cee56fe4d49deabe12bc0fc3d686d23eaa0b49af957ffe68eadec722cff5170d5c750b00ea'
+                'Cookie: __dcfduid=8ec71370974011ed9aeb96cee56fe4d4; __sdcfduid=8ec71370974011ed9aeb96cee56fe4d49deabe12bc0fc3d686d23eaa0b49af957ffe68eadec722cff5170d5c750b00ea',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -160,5 +157,4 @@ Hello ' . $ads->client->client_name . ', you have a new lead:';
 
         return $response;
     }
-
 }

@@ -3,34 +3,31 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\WalletTopUp;
-use App\Models\Transections;
-use App\Models\LeadClient;
-use App\Models\Group;
 use App\Models\Ads;
 use App\Models\AgentDetail;
-use App\Models\DailyAdsSpent;
 use App\Models\ClientWallet;
+use App\Models\DailyAdsSpent;
 use App\Models\GoogleAd;
+use App\Models\LeadClient;
 use App\Models\SubAccount;
+use App\Models\Transections;
+use App\Models\User;
+use App\Models\UserSubAccount;
+use App\Models\WalletTopUp;
+use App\Services\GoogleAdsService;
+use App\Traits\AdsSpentTrait;
+use App\Traits\GoogleTrait;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use App\Models\TaxCharge;
-use App\Models\UserSubAccount;
-use App\Services\GoogleAdsService;
-use App\Traits\AdsSpentTrait;
-use Carbon\Carbon;
-use App\Traits\GoogleTrait;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
+use Yajra\DataTables\Facades\DataTables;
 
 class RunningAdsController extends Controller
 {
-    use GoogleTrait, AdsSpentTrait;
+    use AdsSpentTrait, GoogleTrait;
 
     public function index(Request $request)
     {
@@ -100,7 +97,7 @@ class RunningAdsController extends Controller
                 continue;
             }
 
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             $clientGoogleAds = GoogleAd::with('client')->with('ad')->where('client_id', $client->id)->get();
             $customerId = $client->customer_id;
 
@@ -149,7 +146,7 @@ class RunningAdsController extends Controller
             'total_ppc_leads' => $get_ppc_leads,
             'weekly_total_lead' => $get_weekly_total_leads,
             'dates_text' => "From: {$weekStartDate->format('d-M-Y H:i')} - To: {$week_end_date->format('d-M-Y H:i')}",
-            'clients' => User::whereNotNull('email_verified_at')->where('sub_account_id', hashids_decode(session()->get('sub_account_id')))->latest()->get(['id','client_name','email']),
+            'clients' => User::whereNotNull('email_verified_at')->where('sub_account_id', hashids_decode(session()->get('sub_account_id')))->latest()->get(['id', 'client_name', 'email']),
             'sub_account_id' => session()->get('sub_account_id'),
             'google_ads' => $googleAds,
             'sub_account_ids' => User::where('sub_account_id', hashids_decode(session()->get('sub_account_id')))->pluck('id'),
@@ -197,6 +194,7 @@ class RunningAdsController extends Controller
                 return $lead->lead_data->map(function ($item) {
                     $key = Str::limit($item->key, 10);
                     $value = Str::limit($item->value, 10);
+
                     return "<span>$key: $value</span>";
                 })->implode('<br>');
 
@@ -207,7 +205,7 @@ class RunningAdsController extends Controller
                     'email' => $lead->email,
                     'mobile_number' => $lead->mobile_number,
                     'admin_status' => $lead->admin_status,
-                    'lead_data' => $lead->lead_data
+                    'lead_data' => $lead->lead_data,
                 ]);
                 $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>";
                 if ($lead->user_status == 'agent') {
@@ -218,7 +216,7 @@ class RunningAdsController extends Controller
                         'registration_start_date' => $agent_detail->registration_start_date ?? '-',
                         'registration_end_date' => $agent_detail->registration_end_date ?? '-',
                         'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
-                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-'
+                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-',
                     ]);
                     $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
                 }
@@ -226,22 +224,23 @@ class RunningAdsController extends Controller
                 return $actionsHtml;
             })
             ->addColumn('admin_status', function ($lead) use ($enum_values) {
-                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="' . $lead->id . '">';
+                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="'.$lead->id.'">';
                 foreach ($enum_values as $value) {
                     $selected = $lead->admin_status == $value ? 'selected' : '';
                     $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
                 }
                 $dropdown .= '</select>';
+
                 return $dropdown;
             })
             ->filter(function ($query) {
                 if (request()->input('search')) {
                     $query->where(function ($search_query) {
-                        $search_query->whereLike(['status','topup_amount'], request()->input('search'));
+                        $search_query->whereLike(['status', 'topup_amount'], request()->input('search'));
                     });
                 }
             })
-            ->rawColumns(['actions','lead_data','admin_status'])
+            ->rawColumns(['actions', 'lead_data', 'admin_status'])
             ->make(true);
     }
 
@@ -273,73 +272,72 @@ class RunningAdsController extends Controller
         $client_leads = $client_leads->latest()->get();
 
         return DataTables::of($client_leads)
-                ->addIndexColumn()
-                ->addColumn('client_name', function ($lead) {
-                    return $lead->clients->client_name ?? '-';
-                })
-                ->addColumn('name', function ($lead) {
-                    return $lead->name ?? '-';
-                })
-                ->addColumn('email', function ($lead) {
-                    return $lead->email ?? '-';
-                })
-                ->addColumn('mobile_number', function ($lead) {
-                    return $lead->mobile_number ?? '-';
-                })
-                ->addColumn('lead_data', function ($lead) {
-                    return $lead->lead_data->map(function ($item) {
-                        $key = Str::limit($item->key, 10);
-                        $value = Str::limit($item->value, 10);
-                        return "<span>$key: $value</span>";
-                    })->implode('<br>');
+            ->addIndexColumn()
+            ->addColumn('client_name', function ($lead) {
+                return $lead->clients->client_name ?? '-';
+            })
+            ->addColumn('name', function ($lead) {
+                return $lead->name ?? '-';
+            })
+            ->addColumn('email', function ($lead) {
+                return $lead->email ?? '-';
+            })
+            ->addColumn('mobile_number', function ($lead) {
+                return $lead->mobile_number ?? '-';
+            })
+            ->addColumn('lead_data', function ($lead) {
+                return $lead->lead_data->map(function ($item) {
+                    $key = Str::limit($item->key, 10);
+                    $value = Str::limit($item->value, 10);
 
-                })
+                    return "<span>$key: $value</span>";
+                })->implode('<br>');
 
-                ->addColumn('actions', function ($lead) {
-                    $data = json_encode([
-                        'name' => $lead->name,
-                        'email' => $lead->email,
-                        'mobile_number' => $lead->mobile_number,
-                        'admin_status' => $lead->admin_status,
-                        'lead_data' => $lead->lead_data
-                    ]);
-                    $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
+            })
+            ->addColumn('actions', function ($lead) {
+                $data = json_encode([
+                    'name' => $lead->name,
+                    'email' => $lead->email,
+                    'mobile_number' => $lead->mobile_number,
+                    'admin_status' => $lead->admin_status,
+                    'lead_data' => $lead->lead_data,
+                ]);
+                $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
                     ";
 
-                    if ($lead->user_status == 'agent') {
-                        $agent_detail = AgentDetail::where('registration_no', $lead->registration_no)->first();
-                        $agentdata = json_encode([
-                            'salesperson_name' => $agent_detail->salesperson_name ?? '-',
-                            'registration_no' => $agent_detail->registration_no ?? '-',
-                            'registration_start_date' => $agent_detail->registration_start_date ?? '-',
-                            'registration_end_date' => $agent_detail->registration_end_date ?? '-',
-                            'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
-                            'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-'
-                        ]);
-                        $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
-                    }
+                if ($lead->user_status == 'agent') {
+                    $agent_detail = AgentDetail::where('registration_no', $lead->registration_no)->first();
+                    $agentdata = json_encode([
+                        'salesperson_name' => $agent_detail->salesperson_name ?? '-',
+                        'registration_no' => $agent_detail->registration_no ?? '-',
+                        'registration_start_date' => $agent_detail->registration_start_date ?? '-',
+                        'registration_end_date' => $agent_detail->registration_end_date ?? '-',
+                        'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
+                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-',
+                    ]);
+                    $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
+                }
 
-                    return $actionsHtml;
-                })
+                return $actionsHtml;
+            })
+            ->addColumn('admin_status', function ($lead) use ($enum_values) {
+                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="'.$lead->id.'">';
+                foreach ($enum_values as $value) {
+                    $selected = $lead->admin_status == $value ? 'selected' : '';
+                    $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
+                }
+                $dropdown .= '</select>';
 
-
-              ->addColumn('admin_status', function ($lead) use ($enum_values) {
-                  $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="' . $lead->id . '">';
-                  foreach ($enum_values as $value) {
-                      $selected = $lead->admin_status == $value ? 'selected' : '';
-                      $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
-                  }
-                  $dropdown .= '</select>';
-                  return $dropdown;
-              })
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','topup_amount'], request()->input('search'));
-                        });
-                    }
-                })
-                ->rawColumns(['actions','lead_data','admin_status'])
+                return $dropdown;
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['status', 'topup_amount'], request()->input('search'));
+                    });
+                }
+            })
+            ->rawColumns(['actions', 'lead_data', 'admin_status'])
             ->make(true);
     }
 
@@ -382,14 +380,14 @@ class RunningAdsController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','topup_amount'], request()->input('search'));
+                            $search_query->whereLike(['status', 'topup_amount'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -426,7 +424,7 @@ class RunningAdsController extends Controller
                     } else {
                         $amt = $ads->daily_budget;
                     }
-                
+
                     if ($total_amt == $amt) {
                         $ads->payment_status = 1;
                     }
@@ -475,7 +473,7 @@ class RunningAdsController extends Controller
                 $create->status = 'canceled';
             }
             $create->save();
-            
+
             $wallet->status = $request->topup_status;
             $wallet->save();
 
@@ -486,13 +484,14 @@ class RunningAdsController extends Controller
                 'success' => 'TopUp Status Change Successfully',
                 'reload' => true,
             ];
+
             return response()->json($msg);
         } catch (\Exception $e) {
             // Something went wrong, rollback the transaction
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error TopUp: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error TopUp: '.$e->getMessage()], 500);
         }
     }
 
@@ -502,7 +501,7 @@ class RunningAdsController extends Controller
         $userSubAccounts = UserSubAccount::where('sub_account_id', $subAccountId)->get();
         $userSubAccountIds = $userSubAccounts->pluck('id')->toArray();
         $clientIds = $userSubAccounts->pluck('client_id')->toArray();
-        
+
         // if ($clientIds) {
         $query = Ads::whereIn('user_sub_account_id', $userSubAccountIds)
             ->where('status', '!=', 'pause')
@@ -527,7 +526,7 @@ class RunningAdsController extends Controller
                 ->addColumn('type', function ($data) {
                     // $types = explode(',', $data->type);
                     // return Str::limit(ads_type_text($types), 30, '...');
-                    return $data->spend_type == 'monthly' ? ucfirst($data->spend_type) : ucfirst($data->spend_type).' ('.get_price($data->daily_budget).')' ;
+                    return $data->spend_type == 'monthly' ? ucfirst($data->spend_type) : ucfirst($data->spend_type).' ('.get_price($data->daily_budget).')';
                 })
                 ->addColumn('status', function ($data) {
                     return view('admin.client_management.include.ads_status', ['data' => $data]);
@@ -544,6 +543,7 @@ class RunningAdsController extends Controller
                         } else {
                             $budget = $data->daily_budget * 30;
                         }
+
                         return get_price($budget);
                     } else {
                         return get_price($data->daily_budget);
@@ -561,14 +561,14 @@ class RunningAdsController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['adds_title','type'], request()->input('search'));
+                            $search_query->whereLike(['adds_title', 'type'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -598,7 +598,7 @@ class RunningAdsController extends Controller
             ->orderColumn('DT_RowIndex', function ($q, $o) {
                 $q->orderBy('id', $o);
             })
-        ->make(true);
+            ->make(true);
     }
 
     public function get_sub_wallet_transactions(Request $request)
@@ -621,6 +621,7 @@ class RunningAdsController extends Controller
             'sub_wallet_remaining' => $sub_wallet_remaining,
             'client_id' => $client_id ?? 0,
         ];
+
         return view('admin.running_ads.sub_wallet_transactions', $data);
     }
 
@@ -628,33 +629,35 @@ class RunningAdsController extends Controller
     {
 
         $auth_id = $request->client_id;
+
         return DataTables::of(Transections::where('client_id', $auth_id)
             ->where('ads_id', $request->ads_id))
-                ->addIndexColumn()
-                ->addColumn('amount_in', function ($data) {
-                    return $data->amount_in != '' ? get_price($data->amount_in) : '-';
-                })
-                ->addColumn('description', function ($data) {
-                    return str_replace('_', ' ', ucfirst($data->topup_type));
-                })
-                ->addColumn('amount_out', function ($data) {
-                    return $data->amount_out != '' ? get_price($data->amount_out) : '-';
-                })
-                ->addColumn('created_at', function ($data) {
-                    return get_fulltime($data->created_at);
-                })
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['subaccount_name'], request()->input('search'));
-                        });
-                    }
-                })
-                ->orderColumn('DT_RowIndex', function ($q, $o) {
-                    $q->orderBy('id', $o);
-                })
+            ->addIndexColumn()
+            ->addColumn('amount_in', function ($data) {
+                return $data->amount_in != '' ? get_price($data->amount_in) : '-';
+            })
+            ->addColumn('description', function ($data) {
+                return str_replace('_', ' ', ucfirst($data->topup_type));
+            })
+            ->addColumn('amount_out', function ($data) {
+                return $data->amount_out != '' ? get_price($data->amount_out) : '-';
+            })
+            ->addColumn('created_at', function ($data) {
+                return get_fulltime($data->created_at);
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['subaccount_name'], request()->input('search'));
+                    });
+                }
+            })
+            ->orderColumn('DT_RowIndex', function ($q, $o) {
+                $q->orderBy('id', $o);
+            })
             ->make(true);
     }
+
     public function get_low_bls_ads(Request $request)
     {
         if (isset($request->client) && !empty($request->client)) {
@@ -674,6 +677,7 @@ class RunningAdsController extends Controller
                 })
                 ->addColumn('type', function ($data) {
                     $types = explode(',', $data->type);
+
                     return Str::limit(ads_type_text($types), 30, '...');
                 })
                 ->addColumn('status', function ($data) {
@@ -685,14 +689,14 @@ class RunningAdsController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['adds_title','type'], request()->input('search'));
+                            $search_query->whereLike(['adds_title', 'type'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -740,6 +744,7 @@ class RunningAdsController extends Controller
             ];
             $ads->status = $request->ads_status;
             $ads->save();
+
             return response()->json($msg);
         } else {
             $msg = [
@@ -748,6 +753,7 @@ class RunningAdsController extends Controller
             ];
             $ads->status = $request->ads_status;
             $ads->save();
+
             return response()->json($msg);
         }
 
@@ -755,14 +761,14 @@ class RunningAdsController extends Controller
 
     public function ads_remaining_balance_refund(Request $request)
     {
-        $transections = new Transections();
+        $transections = new Transections;
         $transections->client_id = $request->client_id;
         $transections->amount_out = $request->refund_amt;
         $transections->ads_id = $request->ads_id;
         $transections->topup_type = 'back_to_main_wallet';
         $transections->save();
 
-        $client_wallet = new ClientWallet();
+        $client_wallet = new ClientWallet;
         $client_wallet->client_id = $request->client_id;
         $client_wallet->ads_id = $request->ads_id;
         $client_wallet->amount_in = $request->refund_amt;
@@ -799,7 +805,6 @@ class RunningAdsController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-
         if (!$ads) {
             return response()->json(['error' => 'Ad not found'], 404);
         }
@@ -809,7 +814,6 @@ class RunningAdsController extends Controller
                 return ['error' => 'Your ad cannot go live because the subwallet amount is 0. Please add funds to proceed.'];
             }
         }
-
 
         $ads->status = $request->ads_status;
         $ads->domain_name = $request->name_domain;
@@ -828,8 +832,6 @@ class RunningAdsController extends Controller
 
         return response()->json($msg);
     }
-
-
 
     public function change_ads_status(Request $request)
     {
@@ -872,7 +874,7 @@ class RunningAdsController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error TopUp: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error TopUp: '.$e->getMessage()], 500);
         }
     }
 
@@ -914,7 +916,7 @@ class RunningAdsController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error Lead Status: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error Lead Status: '.$e->getMessage()], 500);
         }
     }
 
@@ -928,7 +930,7 @@ class RunningAdsController extends Controller
 
         if (!$lead_client) {
             return response()->json([
-                'error' => 'Lead not found.'
+                'error' => 'Lead not found.',
             ], 404);
         }
 
@@ -976,14 +978,14 @@ class RunningAdsController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['available_balance','amount_in', 'amount_out'], request()->input('search'));
+                            $search_query->whereLike(['available_balance', 'amount_in', 'amount_out'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -1065,7 +1067,7 @@ class RunningAdsController extends Controller
         DB::beginTransaction();
 
         try {
-            $daily_ads_spent = new DailyAdsSpent();
+            $daily_ads_spent = new DailyAdsSpent;
             if ($request->id && !empty($request->id)) {
                 $daily_ads_spent = $daily_ads_spent->findOrfail($request->id);
                 $msg = [
@@ -1095,7 +1097,7 @@ class RunningAdsController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error Daily Ads Spent: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error Daily Ads Spent: '.$e->getMessage()], 500);
         }
     }
 
@@ -1135,6 +1137,7 @@ class RunningAdsController extends Controller
 
         return view('admin.running_ads.view_progress')->with($data);
     }
+
     public function get_leads_data(Request $request)
     {
         $client_id = $request->client_id;
@@ -1148,73 +1151,72 @@ class RunningAdsController extends Controller
         $client_leads = LeadClient::with('lead_data', 'clients')->where('client_id', $client_id)->where('lead_type', 'ppc')->where('ads_id', $ads_id)->latest()->get();
 
         return DataTables::of($client_leads)
-                ->addIndexColumn()
-                ->addColumn('client_name', function ($lead) {
-                    return $lead->clients->client_name ?? '-';
-                })
-                ->addColumn('name', function ($lead) {
-                    return $lead->name ?? '-';
-                })
-                ->addColumn('email', function ($lead) {
-                    return $lead->email ?? '-';
-                })
-                ->addColumn('mobile_number', function ($lead) {
-                    return $lead->mobile_number ?? '-';
-                })
-                ->addColumn('lead_data', function ($lead) {
-                    return $lead->lead_data->map(function ($item) {
-                        $key = Str::limit($item->key, 10);
-                        $value = Str::limit($item->value, 10);
-                        return "<span>$key: $value</span>";
-                    })->implode('<br>');
+            ->addIndexColumn()
+            ->addColumn('client_name', function ($lead) {
+                return $lead->clients->client_name ?? '-';
+            })
+            ->addColumn('name', function ($lead) {
+                return $lead->name ?? '-';
+            })
+            ->addColumn('email', function ($lead) {
+                return $lead->email ?? '-';
+            })
+            ->addColumn('mobile_number', function ($lead) {
+                return $lead->mobile_number ?? '-';
+            })
+            ->addColumn('lead_data', function ($lead) {
+                return $lead->lead_data->map(function ($item) {
+                    $key = Str::limit($item->key, 10);
+                    $value = Str::limit($item->value, 10);
 
-                })
+                    return "<span>$key: $value</span>";
+                })->implode('<br>');
 
-                ->addColumn('actions', function ($lead) {
-                    $data = json_encode([
-                        'name' => $lead->name,
-                        'email' => $lead->email,
-                        'mobile_number' => $lead->mobile_number,
-                        'admin_status' => $lead->admin_status,
-                        'lead_data' => $lead->lead_data
-                    ]);
-                    $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
+            })
+            ->addColumn('actions', function ($lead) {
+                $data = json_encode([
+                    'name' => $lead->name,
+                    'email' => $lead->email,
+                    'mobile_number' => $lead->mobile_number,
+                    'admin_status' => $lead->admin_status,
+                    'lead_data' => $lead->lead_data,
+                ]);
+                $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
                     ";
 
-                    if ($lead->user_status == 'agent') {
-                        $agent_detail = AgentDetail::where('registration_no', $lead->registration_no)->first();
-                        $agentdata = json_encode([
-                            'salesperson_name' => $agent_detail->salesperson_name ?? '-',
-                            'registration_no' => $agent_detail->registration_no ?? '-',
-                            'registration_start_date' => $agent_detail->registration_start_date ?? '-',
-                            'registration_end_date' => $agent_detail->registration_end_date ?? '-',
-                            'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
-                            'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-'
-                        ]);
-                        $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
-                    }
+                if ($lead->user_status == 'agent') {
+                    $agent_detail = AgentDetail::where('registration_no', $lead->registration_no)->first();
+                    $agentdata = json_encode([
+                        'salesperson_name' => $agent_detail->salesperson_name ?? '-',
+                        'registration_no' => $agent_detail->registration_no ?? '-',
+                        'registration_start_date' => $agent_detail->registration_start_date ?? '-',
+                        'registration_end_date' => $agent_detail->registration_end_date ?? '-',
+                        'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
+                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-',
+                    ]);
+                    $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
+                }
 
-                    return $actionsHtml;
-                })
+                return $actionsHtml;
+            })
+            ->addColumn('admin_status', function ($lead) use ($enum_values) {
+                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="'.$lead->id.'">';
+                foreach ($enum_values as $value) {
+                    $selected = $lead->admin_status == $value ? 'selected' : '';
+                    $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
+                }
+                $dropdown .= '</select>';
 
-
-              ->addColumn('admin_status', function ($lead) use ($enum_values) {
-                  $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="' . $lead->id . '">';
-                  foreach ($enum_values as $value) {
-                      $selected = $lead->admin_status == $value ? 'selected' : '';
-                      $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
-                  }
-                  $dropdown .= '</select>';
-                  return $dropdown;
-              })
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','topup_amount'], request()->input('search'));
-                        });
-                    }
-                })
-                ->rawColumns(['actions','lead_data','admin_status'])
+                return $dropdown;
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['status', 'topup_amount'], request()->input('search'));
+                    });
+                }
+            })
+            ->rawColumns(['actions', 'lead_data', 'admin_status'])
             ->make(true);
     }
 }

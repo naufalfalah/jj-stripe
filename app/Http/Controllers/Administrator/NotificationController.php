@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Administrator;
 use App\Constants\NotificationConstant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NotificationTemplateRequest;
-use App\Models\Notification;
 use App\Models\NotificationSchedule;
 use App\Models\NotificationTemplate;
 use App\Models\User;
@@ -43,6 +42,7 @@ class NotificationController extends Controller
         if (Auth::user('admin')->can('send-notification-write') != true) {
             abort(403, 'Unauthorized action.');
         }
+
         return view('admin.notification.create', [
             'breadcrumb_main' => 'Create Notifications',
             'breadcrumb' => 'Create Notifications',
@@ -128,7 +128,7 @@ class NotificationController extends Controller
 
         $notificationSchedules = NotificationSchedule::where('notification_id', $id)
             ->get();
-        
+
         return view('admin.notification.schedule', [
             'breadcrumb_main' => 'Notification Schedule',
             'breadcrumb' => 'Notification Schedule',
@@ -185,7 +185,7 @@ class NotificationController extends Controller
         if (Auth::user('admin')->can('schedule-write') != true || Auth::user('admin')->can('schedule-update') != true) {
             abort(403, 'Unauthorized action.');
         }
-        
+
         $deviceToken = 'YOUR_DEVICE_TOKEN';
         $title = 'Notification Title';
         $body = 'This is the notification body.';
@@ -193,6 +193,7 @@ class NotificationController extends Controller
 
         try {
             $response = $this->firebaseService->sendNotification($deviceToken, $title, $body, $data);
+
             return response()->json(['success' => true, 'response' => $response]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()]);

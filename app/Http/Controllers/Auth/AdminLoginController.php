@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Auth;
 
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
-use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use \Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
 use App\Models\Admin;
+use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AdminLoginController extends Controller
 {
@@ -30,7 +30,7 @@ class AdminLoginController extends Controller
     {
         $a = $this->validate($request, [
             'username' => 'required',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
         $usernameOrEmail = $request->input('username');
@@ -47,6 +47,7 @@ class AdminLoginController extends Controller
             return redirect()->back()->withInput($request->only('username', 'remember'))
                 ->withErrors(['username' => 'These credentials do not match our records.']);
         }
+
         return redirect()->route('admin.home');
     }
 
@@ -54,6 +55,7 @@ class AdminLoginController extends Controller
     {
         Auth::guard('admin')->logout();
         Session()->forget('sub_account_id');
+
         return redirect()->route('admin.login');
     }
 
@@ -63,6 +65,7 @@ class AdminLoginController extends Controller
         $data = [
             'title' => 'Forget Password',
         ];
+
         return view('auth.admin.email', $data);
     }
 
@@ -85,6 +88,7 @@ class AdminLoginController extends Controller
                 'redirect_route' => route('admin.add_new_pasword', $find_email->hashid),
             ];
             send_email('verify', $find_email->email, 'Chenge Password Request', $data);
+
             return redirect()->back()->with('success', 'Password reset link sent successfully. Check your email.');
         } else {
             return redirect()->back()->with('error', 'User with this email does not exist.');
@@ -97,6 +101,7 @@ class AdminLoginController extends Controller
             'title' => 'Set New Password',
             'user_id' => $id,
         ];
+
         return view('auth.admin.reset', $data);
     }
 
@@ -104,7 +109,7 @@ class AdminLoginController extends Controller
     {
         $rules = [
             'password' => 'required|min:8|max:12',
-            'confirm_password' => 'required|same:password'
+            'confirm_password' => 'required|same:password',
         ];
 
         $validator = Validator::make($request->all(), $rules);

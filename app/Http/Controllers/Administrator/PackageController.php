@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 class PackageController extends Controller
 {
     use PackageTrait;
-    
+
     public function index()
     {
         if (Auth::user('admin')->can('package-read') != true) {

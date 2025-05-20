@@ -44,7 +44,7 @@ class RoleController extends Controller
             'breadcrumb_main' => 'Role Management',
             'breadcrumb' => 'Add Role',
             'title' => 'Add Role',
-            'permission_types' => PremissionType::with('permissions')->get()
+            'permission_types' => PremissionType::with('permissions')->get(),
         ];
 
         return view('admin.role.add')->with($data);
@@ -70,7 +70,7 @@ class RoleController extends Controller
         if ($validator->fails()) {
             return ['errors' => $validator->errors()];
         }
-        $role = new Role();
+        $role = new Role;
         $permissions = [];
         if ($request->role_id) {
             $role = $role::find($request->role_id);
@@ -88,7 +88,7 @@ class RoleController extends Controller
 
             $affected = DB::table('admins')
                 ->where('role_id', $role->id)
-                ->update(['user_permissions' => $permissions,'role_name' => $role->name]);
+                ->update(['user_permissions' => $permissions, 'role_name' => $role->name]);
         } else {
             $msg = [
                 'success' => 'Role has been added successfully',
@@ -104,9 +104,8 @@ class RoleController extends Controller
 
             $affected = DB::table('admins')
                 ->where('role_id', $role->id)
-                ->update(['user_permissions' => $permissions,'role_name' => $role->name]);
+                ->update(['user_permissions' => $permissions, 'role_name' => $role->name]);
         }
-
 
         return response()->json($msg);
     }
@@ -143,9 +142,10 @@ class RoleController extends Controller
         }
 
         $role = Role::Find($id)->delete();
+
         return response()->json([
             'success' => 'Role deleted successfully',
-            'remove_tr' => true
+            'remove_tr' => true,
         ]);
     }
 }

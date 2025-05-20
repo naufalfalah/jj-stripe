@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Administrator;
 use App\Http\Controllers\Controller;
 use App\Models\Agency;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class AgencyController extends Controller
 {
@@ -52,16 +52,14 @@ class AgencyController extends Controller
         }
         if (!empty($request->id)) {
             $rules = [
-                'name' =>
-                    'required|unique:agencies,name,' .
-                    hashids_decode($request->id) .
+                'name' => 'required|unique:agencies,name,'.
+                    hashids_decode($request->id).
                     ',id,deleted_at,NULL',
                 'address' => 'required',
             ];
         } else {
             $rules = [
-                'name' =>
-                    'required|unique:agencies,name,NULL,id,deleted_at,NULL',
+                'name' => 'required|unique:agencies,name,NULL,id,deleted_at,NULL',
                 'address' => 'required',
             ];
         }
@@ -72,7 +70,7 @@ class AgencyController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        $agency = new Agency();
+        $agency = new Agency;
         if (!empty($request->id)) {
             $agency = $agency->findOrfail(hashids_decode($request->id));
             $msg = [

@@ -12,26 +12,19 @@ use Illuminate\Support\Facades\Session;
 
 class TikTokAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $tiktokService = new TikTokService();
+        $tiktokService = new TikTokService;
         $url = $tiktokService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->query('code');
 
-        $tiktokService = new TikTokService();
+        $tiktokService = new TikTokService;
         $authorization = $tiktokService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -58,7 +51,6 @@ class TikTokAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

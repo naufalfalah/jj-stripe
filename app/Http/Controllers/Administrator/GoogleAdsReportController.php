@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\GoogleReport;
 use App\Models\Admin;
-use App\Models\GoogleAdsAccount;
-use App\Traits\GoogleTrait;
 use App\Models\CampaignNote;
 use App\Models\GoogleAd;
+use App\Models\GoogleAdsAccount;
+use App\Models\GoogleReport;
 use App\Models\User;
-use Illuminate\Support\Facades\Validator;
+use App\Traits\GoogleTrait;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Browsershot\Browsershot;
 
 class GoogleAdsReportController extends Controller
@@ -119,34 +119,34 @@ class GoogleAdsReportController extends Controller
 
             if (is_array($summary_graph) && !empty($summary_graph['dates'])) {
                 foreach ($summary_graph['dates'] as $key => $summary_graph_v) {
-                    $dates .= "'" . $summary_graph_v . "',";
+                    $dates .= "'".$summary_graph_v."',";
                     $clicks .=
-                        "'" . round($summary_graph['clicks'][$key]) . "',";
+                        "'".round($summary_graph['clicks'][$key])."',";
                     $impressions .=
-                        "'" . round($summary_graph['impressions'][$key]) . "',";
+                        "'".round($summary_graph['impressions'][$key])."',";
                     $conversations .=
-                        "'" . round($summary_graph['conversions'][$key]) . "',";
+                        "'".round($summary_graph['conversions'][$key])."',";
                     $average_cpc .=
-                        "'" . round($summary_graph['average_cpc'][$key]) . "',";
-                    $cost .= "'" . round($summary_graph['cost'][$key]) . "',";
+                        "'".round($summary_graph['average_cpc'][$key])."',";
+                    $cost .= "'".round($summary_graph['cost'][$key])."',";
                     $conversation_rate .=
-                        "'" .
+                        "'".
                         round(
                             $summary_graph['conversation_rate'][$key] * 100,
                             2
-                        ) .
+                        ).
                         "',";
                     $cost_per_con .=
-                        "'" .
-                        round($summary_graph['cost_per_conversion'][$key]) .
+                        "'".
+                        round($summary_graph['cost_per_conversion'][$key]).
                         "',";
                     $ctr .=
-                        "'" .
+                        "'".
                         round(
                             (round($summary_graph['clicks'][$key]) /
                                 round($summary_graph['impressions'][$key])) *
                                 100
-                        ) .
+                        ).
                         "',";
                 }
             }
@@ -158,28 +158,28 @@ class GoogleAdsReportController extends Controller
                 foreach (
                     $performance_graph['dates'] as $key => $performance_graph_v
                 ) {
-                    $performance_dates .= "'" . $performance_graph_v . "',";
+                    $performance_dates .= "'".$performance_graph_v."',";
                     $costs .=
-                        "'" . round($performance_graph['cost'][$key]) . "',";
+                        "'".round($performance_graph['cost'][$key])."',";
                     $cost_per_1000_imp .=
-                        "'" .
+                        "'".
                         round(
                             $performance_graph['cost_per_1000_impressions'][
                                 $key
                             ]
-                        ) .
+                        ).
                         "',";
                     $cost_per_click .=
-                        "'" .
-                        round($performance_graph['cost_per_click'][$key]) .
+                        "'".
+                        round($performance_graph['cost_per_click'][$key]).
                         "',";
                     $reveneu_per_click .=
-                        "'" .
-                        round($performance_graph['revenue_per_click'][$key]) .
+                        "'".
+                        round($performance_graph['revenue_per_click'][$key]).
                         "',";
                     $total_value .=
-                        "'" .
-                        round($performance_graph['total_value'][$key]) .
+                        "'".
+                        round($performance_graph['total_value'][$key]).
                         "',";
                 }
             }
@@ -483,7 +483,7 @@ class GoogleAdsReportController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        $campaign_note = new CampaignNote();
+        $campaign_note = new CampaignNote;
         $campaign_note->note_date = $request->note_date;
         $campaign_note->campaign_name = $request->campaign;
         $campaign_note->note = $request->notes;
@@ -570,13 +570,13 @@ class GoogleAdsReportController extends Controller
 
             if (is_array($summary_graph) && !empty($summary_graph['dates'])) {
                 foreach ($summary_graph['dates'] as $key => $summary_graph_v) {
-                    $dates .= "'" . $summary_graph_v . "',";
+                    $dates .= "'".$summary_graph_v."',";
                     $clicks .=
-                        "'" . round($summary_graph['clicks'][$key]) . "',";
+                        "'".round($summary_graph['clicks'][$key])."',";
                     $impressions .=
-                        "'" . round($summary_graph['impressions'][$key]) . "',";
+                        "'".round($summary_graph['impressions'][$key])."',";
                     $conversations .=
-                        "'" . round($summary_graph['conversions'][$key]) . "',";
+                        "'".round($summary_graph['conversions'][$key])."',";
                 }
             }
 
@@ -587,28 +587,28 @@ class GoogleAdsReportController extends Controller
                 foreach (
                     $performance_graph['dates'] as $key => $performance_graph_v
                 ) {
-                    $performance_dates .= "'" . $performance_graph_v . "',";
+                    $performance_dates .= "'".$performance_graph_v."',";
                     $costs .=
-                        "'" . round($performance_graph['cost'][$key]) . "',";
+                        "'".round($performance_graph['cost'][$key])."',";
                     $cost_per_1000_imp .=
-                        "'" .
+                        "'".
                         round(
                             $performance_graph['cost_per_1000_impressions'][
                                 $key
                             ]
-                        ) .
+                        ).
                         "',";
                     $cost_per_click .=
-                        "'" .
-                        round($performance_graph['cost_per_click'][$key]) .
+                        "'".
+                        round($performance_graph['cost_per_click'][$key]).
                         "',";
                     $reveneu_per_click .=
-                        "'" .
-                        round($performance_graph['revenue_per_click'][$key]) .
+                        "'".
+                        round($performance_graph['revenue_per_click'][$key]).
                         "',";
                     $total_value .=
-                        "'" .
-                        round($performance_graph['total_value'][$key]) .
+                        "'".
+                        round($performance_graph['total_value'][$key]).
                         "',";
                 }
             }
@@ -665,8 +665,7 @@ class GoogleAdsReportController extends Controller
                         'name' => $campaigns['name'],
                         'date' => $format_start_date,
                         'total_leads' => $metrics['conversions'] ?? '0',
-                        'cost_per_conversation' =>
-                            $cost_per_conversation ?? '0',
+                        'cost_per_conversation' => $cost_per_conversation ?? '0',
                         'spend' => $campaign_cost ?? '0',
                         'campaign_budget' => $cal_campaign_budget ?? '0',
                         'campaign_notes' => $campaign_notes_for_campaign,
@@ -753,7 +752,7 @@ class GoogleAdsReportController extends Controller
         $timeout = 50000;
         $pdf = Browsershot::html($html)
             ->setTimeout($timeout)
-            ->setIncludePath('$PATH:' . $nmp_path)
+            ->setIncludePath('$PATH:'.$nmp_path)
             ->waitUntilNetworkIdle()
             ->format('A4')
             ->pdf();
@@ -763,9 +762,9 @@ class GoogleAdsReportController extends Controller
             $accountTitle = $get_add_account_name->account_title ?? '';
         }
         $fileName =
-            $accountTitle . ' - ' . Carbon::now()->format('Y-m-d') . '.pdf';
+            $accountTitle.' - '.Carbon::now()->format('Y-m-d').'.pdf';
 
-        $pdfPath = storage_path('app/public/' . $fileName);
+        $pdfPath = storage_path('app/public/'.$fileName);
         file_put_contents($pdfPath, $pdf);
 
         return response()
@@ -785,9 +784,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT campaign.id, campaign.start_date, campaign.end_date, campaign.name, campaign.target_roas.target_roas, campaign_budget.amount_micros, campaign.status, metrics.clicks, metrics.impressions, metrics.ctr, metrics.conversions, metrics.cost_micros FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -800,9 +798,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -851,9 +849,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT campaign.id, ad_group.id, ad_group.name, ad_group.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group WHERE ad_group.status != 'PAUSED' AND segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -866,9 +863,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -917,9 +914,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT campaign.id, ad_group_criterion.keyword.text, ad_group_criterion.approval_status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions, metrics.all_conversions_value FROM keyword_view WHERE ad_group_criterion.approval_status = 'APPROVED' AND segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -932,9 +928,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -983,9 +979,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT campaign.id, ad_group_ad.ad.type, ad_group_ad.ad.name, campaign.id, ad_group_ad.ad.final_urls, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group_ad WHERE segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -998,9 +993,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -1049,9 +1044,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT segments.device, campaign.id, metrics.clicks, metrics.conversions, metrics.cost_micros, metrics.ctr, metrics.impressions FROM ad_group WHERE segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -1064,9 +1058,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -1187,8 +1181,8 @@ class GoogleAdsReportController extends Controller
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
             ],
         ]);
 
@@ -1217,9 +1211,8 @@ class GoogleAdsReportController extends Controller
         $curl = curl_init();
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $customer_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $customer_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -1234,15 +1227,16 @@ class GoogleAdsReportController extends Controller
         }',
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $customer_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$customer_id,
             ],
         ]);
 
         $response = curl_exec($curl);
 
         curl_close($curl);
+
         return json_decode($response, true);
     }
 
@@ -1258,9 +1252,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT segments.date, campaign.id, campaign.name, metrics.clicks, metrics.impressions, metrics.conversions, metrics.ctr, metrics.average_cpc, metrics.cost_micros, metrics.cost_per_conversion FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -1273,9 +1266,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -1388,9 +1381,8 @@ class GoogleAdsReportController extends Controller
         $query = "SELECT segments.date, campaign.id, campaign.name, campaign.target_roas.target_roas, campaign.status, metrics.clicks, metrics.impressions, metrics.ctr, metrics.conversions, metrics.cost_micros FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '$start_date' AND '$end_date'";
 
         curl_setopt_array($curl, [
-            CURLOPT_URL =>
-                'https://googleads.googleapis.com/v16/customers/' .
-                $acct_id .
+            CURLOPT_URL => 'https://googleads.googleapis.com/v16/customers/'.
+                $acct_id.
                 '/googleAds:search',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
@@ -1403,9 +1395,9 @@ class GoogleAdsReportController extends Controller
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'developer-token: ' . $devloper_token,
-                'Authorization: Bearer ' . $access_token,
-                'login-customer-id: ' . $acct_id,
+                'developer-token: '.$devloper_token,
+                'Authorization: Bearer '.$access_token,
+                'login-customer-id: '.$acct_id,
             ],
         ]);
 
@@ -1524,7 +1516,7 @@ class GoogleAdsReportController extends Controller
                 isset($customer_detail['results']) &&
                 !empty($customer_detail['results'])
             ) {
-                $save_customer = new GoogleAdsAccount();
+                $save_customer = new GoogleAdsAccount;
                 $save_customer->account_title =
                     $customer_detail['results'][0]['customer'][
                         'descriptiveName'

@@ -25,6 +25,7 @@ class AITextToSpeechController extends Controller
             'breadcrumb' => $title,
             'title' => $title,
         ];
+
         return view('client.ai-text-to-speech.index', $data);
     }
 
@@ -41,11 +42,11 @@ class AITextToSpeechController extends Controller
             return redirect()->back()->withErrors(['error' => 'Audio generation failed.']);
         }
 
-        $audioFileName = 'audio_' . time() . '.mp3';
-        Storage::put('public/audio/' . $audioFileName, $audioData);
-        $audioUrl = Storage::url('public/audio/' . $audioFileName);
+        $audioFileName = 'audio_'.time().'.mp3';
+        Storage::put('public/audio/'.$audioFileName, $audioData);
+        $audioUrl = Storage::url('public/audio/'.$audioFileName);
         Session::flash('audioUrl', $audioUrl);
-        
+
         return redirect()->route('user.ai-tts.index');
     }
 }

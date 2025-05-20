@@ -3,18 +3,18 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Traits\GoogleTrait;
 use App\Models\Admin;
+use App\Models\ClientCalendarEvent;
 use App\Models\GoogleAccount;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use App\Services\GoogleCalendarService;
-use Illuminate\Support\Facades\Validator;
-use Google\Service\Calendar;
-use Illuminate\Support\Facades\DB;
-use App\Models\ClientCalendarEvent;
+use App\Traits\GoogleTrait;
 use DateTimeImmutable;
+use Google\Service\Calendar;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class GoogleAccountController extends Controller
 {
@@ -42,6 +42,7 @@ class GoogleAccountController extends Controller
                         ->latest()
                         ->get(['id', 'client_name', 'email']),
                 ];
+
                 return view('admin.calender')->with($data);
             } else {
                 $data = [
@@ -159,8 +160,8 @@ class GoogleAccountController extends Controller
         $startTime = $request->start_time;
         $endTime = $request->end_time;
 
-        $startDatetimeString = $date . ' ' . $startTime;
-        $endDatetimeString = $date . ' ' . $endTime;
+        $startDatetimeString = $date.' '.$startTime;
+        $endDatetimeString = $date.' '.$endTime;
 
         $startDatetimeImmutable = new DateTimeImmutable($startDatetimeString);
         $endDatetimeImmutable = new DateTimeImmutable($endDatetimeString);
@@ -205,6 +206,7 @@ class GoogleAccountController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -238,8 +240,8 @@ class GoogleAccountController extends Controller
         $startTime = $request->start_time;
         $endTime = $request->end_time;
 
-        $startDatetimeString = $date . ' ' . $startTime;
-        $endDatetimeString = $date . ' ' . $endTime;
+        $startDatetimeString = $date.' '.$startTime;
+        $endDatetimeString = $date.' '.$endTime;
 
         $startDatetimeImmutable = new DateTimeImmutable($startDatetimeString);
         $endDatetimeImmutable = new DateTimeImmutable($endDatetimeString);
@@ -271,6 +273,7 @@ class GoogleAccountController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

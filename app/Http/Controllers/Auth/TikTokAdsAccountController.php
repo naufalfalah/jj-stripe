@@ -11,26 +11,18 @@ use Illuminate\Support\Facades\Session;
 
 class TikTokAdsAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $tiktokAdsService = new TikTokAdsService();
+        $tiktokAdsService = new TikTokAdsService;
         $url = $tiktokAdsService->getRedirectUrl();
 
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->query('code');
-        $tiktokAdsService = new TikTokAdsService();
+        $tiktokAdsService = new TikTokAdsService;
         $authorization = $tiktokAdsService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -45,7 +37,7 @@ class TikTokAdsAccountController extends Controller
         if (!isset($authorization['access_token']) || !$authorization['access_token']) {
             return redirect()->route($route)->with('error', 'Oauth failed');
         }
-        
+
         $user = User::find($clientId);
         $user->tiktok_ads_access_token = json_encode($authorization['data']);
         $user->save();

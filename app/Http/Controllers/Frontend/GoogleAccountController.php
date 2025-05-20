@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
 use App\Models\ClientCalendarEvent;
 use App\Models\User;
+use App\Services\GoogleCalendarService;
 use App\Traits\GoogleTrait;
-use Google\Service\Calendar;
+use DateTimeImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use App\Helpers\ActivityLogHelper;
-use App\Services\GoogleCalendarService;
-use DateTimeImmutable;
 
 class GoogleAccountController extends Controller
 {
@@ -31,6 +30,7 @@ class GoogleAccountController extends Controller
                 'breadcrumb' => 'Calender',
                 'title' => 'Google Calender',
             ];
+
             return view('client.calender')->with($data);
         }
 
@@ -93,7 +93,6 @@ class GoogleAccountController extends Controller
 
         $auth_id = auth('web')->id();
 
-
         ActivityLogHelper::save_activity($auth_id, 'Connect Google Calendar', 'users');
 
         /**
@@ -126,7 +125,7 @@ class GoogleAccountController extends Controller
         // Define the time range for events
         $timeMin = now()->parse(request()->start)->toIso8601String(); // or specify a start date
         $timeMax = now()->parse(request()->end)->toIso8601String(); // or specify an end date
-        
+
         $calendarId = $user->calendar_id;
         $calendarEvents = $googleCalendarService->listEvents($calendarId, $timeMin, $timeMax);
 
@@ -135,7 +134,7 @@ class GoogleAccountController extends Controller
             foreach ($calendarEvents['items'] as $event) {
                 $start = $event['start']['dateTime'] ?? $event['start']['date'];
                 $end = $event['end']['dateTime'] ?? $event['end']['date'];
-    
+
                 $events[] = [
                     'id' => $event['id'],
                     'title' => $event['summary'] ?? 'Untitled Event',
@@ -174,12 +173,12 @@ class GoogleAccountController extends Controller
         $startTime = $request->start_time;
         $endTime = $request->end_time;
 
-        $startDatetimeString = $date . ' ' . $startTime;
-        $endDatetimeString = $date . ' ' . $endTime;
+        $startDatetimeString = $date.' '.$startTime;
+        $endDatetimeString = $date.' '.$endTime;
 
         $startDatetimeImmutable = new DateTimeImmutable($startDatetimeString);
         $endDatetimeImmutable = new DateTimeImmutable($endDatetimeString);
-        
+
         $startDateTime = $startDatetimeImmutable->format('Y-m-d\TH:i:s');
         $endDateTime = $endDatetimeImmutable->format('Y-m-d\TH:i:s');
 
@@ -201,17 +200,18 @@ class GoogleAccountController extends Controller
                 'calender_event_id' => $calendarEvent['id'],
                 'added_by_id' => auth('web')->id(),
             ]);
-            
+
             ActivityLogHelper::save_activity($userId, 'Google Calendar Events Save', 'users');
 
             DB::commit();
 
             return response()->json([
                 'success' => 'New Calendar Event Add Successfully',
-                'reload' => true
+                'reload' => true,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -241,23 +241,23 @@ class GoogleAccountController extends Controller
         $startTime = $request->start_time;
         $endTime = $request->end_time;
 
-        $startDatetimeString = $date . ' ' . $startTime;
-        $endDatetimeString = $date . ' ' . $endTime;
+        $startDatetimeString = $date.' '.$startTime;
+        $endDatetimeString = $date.' '.$endTime;
 
         $startDatetimeImmutable = new DateTimeImmutable($startDatetimeString);
         $endDatetimeImmutable = new DateTimeImmutable($endDatetimeString);
-        
+
         $startDateTime = $startDatetimeImmutable->format('Y-m-d\TH:i:s');
         $endDateTime = $endDatetimeImmutable->format('Y-m-d\TH:i:s');
 
         $this->checkRefreshTokenNewUser($user);
         $googleCalendarService = new GoogleCalendarService($user->google_access_token);
-        
+
         DB::beginTransaction();
         try {
             $calendarId = $user->calendar_id;
             $googleCalendarService->updateEvent($calendarId, $eventId, $summary, $description, $startDateTime, $endDateTime);
-            
+
             ActivityLogHelper::save_activity($userId, 'Google Calendar Events Update', 'users');
 
             DB::commit();
@@ -267,6 +267,7 @@ class GoogleAccountController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -277,16 +278,15 @@ class GoogleAccountController extends Controller
 
         $calendarId = $user->calendar_id;
         $eventId = $request->event_id;
-        
+
         $this->checkRefreshTokenNewUser($user);
         $googleCalendarService = new GoogleCalendarService($user->google_access_token);
         $googleCalendarService->deleteEvent($calendarId, $eventId);
-        
+
         return response()->json([
             'success' => 'Event deleted successfully',
         ]);
     }
-
 
     public function google_calender_disconnected(Request $request)
     {
@@ -299,10 +299,10 @@ class GoogleAccountController extends Controller
             $get_user = User::find($userId);
             $get_user->google_access_token = null;
             $get_user->save();
+
             return response()->json([
                 'success' => 'Calender Disconnected Successfully',
             ]);
         }
     }
-
 }

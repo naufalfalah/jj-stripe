@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ClientTour;
 use App\Models\Tour;
 use App\Models\User;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Exception;
 use Socialite;
 
 class SocialiteController extends Controller
@@ -22,13 +22,14 @@ class SocialiteController extends Controller
     {
         try {
             $socialUser = Socialite::driver($provider)->stateless()->user();
-            
+
             $this->loginOrRegisterUser($socialUser, $provider);
-    
+
             $route = $this->loginRoute();
+
             return redirect()->route($route);
         } catch (Exception $e) {
-            return redirect('/login')->with('error', 'Failed to login with ' . ucfirst($provider));
+            return redirect('/login')->with('error', 'Failed to login with '.ucfirst($provider));
         }
     }
 
@@ -64,31 +65,31 @@ class SocialiteController extends Controller
             if (!$client_tour) {
                 $route = 'user.ads.all';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'FINISH_1'], ['name' => 'Finish']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.wallet.transfer_funds';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'AFTER_TOPUP'], ['name' => 'After Topup']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.wallet.transaction_report';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'START_3'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.wallet.add';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'START_2'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.ads.add';
             }
-    
+
             $tour = Tour::firstOrCreate(['code' => 'START_1'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {

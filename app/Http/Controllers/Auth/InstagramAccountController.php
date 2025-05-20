@@ -12,26 +12,19 @@ use Illuminate\Support\Facades\Session;
 
 class InstagramAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $instagramService = new InstagramService();
+        $instagramService = new InstagramService;
         $url = $instagramService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->query('code');
 
-        $instagramService = new InstagramService();
+        $instagramService = new InstagramService;
         $authorization = $instagramService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -46,7 +39,7 @@ class InstagramAccountController extends Controller
         if (!isset($authorization['access_token']) || !$authorization['access_token']) {
             return redirect()->route($route)->with('error', 'Oauth failed');
         }
-        
+
         $user = User::find($clientId);
         $user->facebook_access_token = json_encode($authorization);
         $user->save();
@@ -58,7 +51,6 @@ class InstagramAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

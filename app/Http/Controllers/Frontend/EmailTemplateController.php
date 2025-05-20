@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\EmailTemplate;
+use App\Models\LeadActivity;
 use App\Models\LeadClient;
 use App\Models\TempActivity;
-use App\Models\LeadActivity;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Str;
-use App\Helpers\ActivityLogHelper;
+use Yajra\DataTables\Facades\DataTables;
 
 class EmailTemplateController extends Controller
 {
@@ -24,7 +23,6 @@ class EmailTemplateController extends Controller
         $activity = 'Email Template';
         $table = 'EmailTemplate';
         ActivityLogHelper::save_activity_with_check($auth_id, $activity, $table);
-
 
         if ($request->ajax()) {
             return DataTables::of(EmailTemplate::query()->where('client_id', $auth_id)->latest())
@@ -37,7 +35,8 @@ class EmailTemplateController extends Controller
                 })
                 ->addColumn('sent', function ($data) {
                     $count = $data->message_activity->count();
-                    return $count > 0 ? $count . ' times' : '-';
+
+                    return $count > 0 ? $count.' times' : '-';
                 })
                 ->addColumn('last_sent', function ($data) {
                     return $data->message_activity->count() > 0 ? $data->message_activity[0]->created_at->format('M d - h:i A') : '-';
@@ -52,7 +51,7 @@ class EmailTemplateController extends Controller
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
         $data = [
             'breadcrumb_main' => 'Email Template',
@@ -85,7 +84,7 @@ class EmailTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $email_template = new EmailTemplate();
+            $email_template = new EmailTemplate;
 
             if ($request->id && !empty($request->id)) {
                 $email_template = $email_template->findOrfail($request->id);
@@ -93,7 +92,7 @@ class EmailTemplateController extends Controller
                 if (isset($request->reopen) && !empty($request->reopen)) {
                     $msg = [
                         'success' => 'Email Template Updated Successfully',
-                        'redirect' => route('user.email-template.temp_details', ['id' => hashids_encode($request->id), 'send_email' => 'send_email'])
+                        'redirect' => route('user.email-template.temp_details', ['id' => hashids_encode($request->id), 'send_email' => 'send_email']),
                     ];
                 } else {
 
@@ -137,7 +136,7 @@ class EmailTemplateController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -154,9 +153,10 @@ class EmailTemplateController extends Controller
             'breadcrumb' => '<span title="'.@$email_template->title.'">'.Str::limit(@$email_template->title, 25).'</span>',
             'title' => 'Template Detail',
             'data' => @$email_template,
-            'clients' => LeadClient::where('client_id', auth('web')->user()->id)->get(['id','name','email', 'mobile_number']),
-            'send_email' => $send_email
+            'clients' => LeadClient::where('client_id', auth('web')->user()->id)->get(['id', 'name', 'email', 'mobile_number']),
+            'send_email' => $send_email,
         ];
+
         return view('client.email_template.temp_detail', $data);
     }
 
@@ -179,10 +179,9 @@ class EmailTemplateController extends Controller
         $auth_id = auth('web')->id();
         ActivityLogHelper::save_activity($auth_id, 'Copy Email Template', 'EmailTemplate');
 
-
         DB::beginTransaction();
         try {
-            $copy_email_template = new EmailTemplate();
+            $copy_email_template = new EmailTemplate;
 
             $copy_email_template->client_id = auth('web')->id();
             $copy_email_template->title = 'Copy of '.$request->copy_data['title'];
@@ -201,7 +200,7 @@ class EmailTemplateController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
 
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -209,7 +208,6 @@ class EmailTemplateController extends Controller
     {
         $auth_id = auth('web')->id();
         ActivityLogHelper::save_activity($auth_id, 'Email Template Send', 'EmailTemplate');
-
 
         $rules = [
             'lead_id' => 'required',
@@ -225,7 +223,7 @@ class EmailTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $email_activity = new TempActivity();
+            $email_activity = new TempActivity;
 
             $email_activity->template_id = $request->temp_id;
             $email_activity->client_id = $request->lead_id;
@@ -233,7 +231,7 @@ class EmailTemplateController extends Controller
             $email_activity->activity_route = 'web';
             $email_activity->save();
 
-            $email_lead_activity = new LeadActivity();
+            $email_lead_activity = new LeadActivity;
 
             $email_lead_activity->lead_client_id = $request->lead_id;
             $email_lead_activity->title = $request->title;
@@ -260,7 +258,7 @@ class EmailTemplateController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error Email Template: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error Email Template: '.$e->getMessage()], 500);
         }
     }
 }

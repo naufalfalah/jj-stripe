@@ -2,25 +2,23 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\ClientFiles;
 use App\Models\ClientFolder;
 use App\Models\LeadActivity;
-use App\Models\ClientFiles;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
-use Carbon\Carbon;
-use App\Helpers\ActivityLogHelper;
 use App\Models\LeadClient;
 use App\Models\PageTemplate;
 use App\Models\TempActivity;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
+use Yajra\DataTables\Facades\DataTables;
 
 class FileManagerController extends Controller
 {
-    
     public function files_view(Request $request)
     {
         $auth_id = auth('web')->id();
@@ -28,7 +26,6 @@ class FileManagerController extends Controller
         if (!request()->ajax()) {
             ActivityLogHelper::save_activity($auth_id, 'File Manager', 'ClientFolder');
         }
-
 
         if ($request->ajax()) {
             return DataTables::of(PageTemplate::query()->latest())
@@ -41,7 +38,8 @@ class FileManagerController extends Controller
                 })
                 ->addColumn('sent', function ($data) {
                     $count = $data->page_activity->count();
-                    return $count > 0 ? $count . ' times' : '-';
+
+                    return $count > 0 ? $count.' times' : '-';
                 })
                 ->addColumn('last_sent', function ($data) {
                     return $data->page_activity->count() > 0 ? $data->page_activity[0]->created_at->format('M d - h:i A') : '-';
@@ -67,6 +65,7 @@ class FileManagerController extends Controller
             'all_folders' => ClientFolder::with('client_files')->where('client_id', $auth_id)->latest()->get(),
             'pages_count' => PageTemplate::all()->count(),
         ];
+
         return view('client.file_manager.index', $data);
     }
 
@@ -77,6 +76,7 @@ class FileManagerController extends Controller
             if (isset($request->folder_id) && !empty($request->folder_id)) {
                 $folder_name = ClientFolder::where('id', $request->folder_id)->latest()->first();
                 $folder_files = ClientFiles::where('folder_id', $request->folder_id)->latest()->get();
+
                 return response([
                     'status' => true,
                     'folder_name' => $folder_name,
@@ -106,6 +106,7 @@ class FileManagerController extends Controller
                 $folder_files = ClientFiles::where('client_id', $auth_id)->latest()->get();
                 // dd($folder_files);
                 $folder_name = 'All Files';
+
                 return response([
                     'status' => true,
                     'folder_name' => $folder_name,
@@ -128,7 +129,6 @@ class FileManagerController extends Controller
         if (!request()->ajax()) {
             ActivityLogHelper::save_activity($auth_id, 'File Detail', 'ClientFiles');
         }
-
 
         $seven_days_ago = Carbon::now()->subDays(7);
 
@@ -154,7 +154,7 @@ class FileManagerController extends Controller
             WHERE file_id = :file_id;'), [
             'seven_days_ago' => $seven_days_ago,
             'currentDateTime' => $currentDateTime,
-            'file_id' => hashids_decode($id)
+            'file_id' => hashids_decode($id),
         ]);
 
         $data = [
@@ -168,6 +168,7 @@ class FileManagerController extends Controller
             'clients' => LeadClient::where('client_id', $auth_id)->latest()->get(),
 
         ];
+
         return view('client.file_manager.file_detail', $data);
     }
 
@@ -175,10 +176,7 @@ class FileManagerController extends Controller
     {
         $auth_id = auth('web')->id();
 
-
         ActivityLogHelper::save_activity($auth_id, 'Update File Name', 'ClientFiles');
-
-
 
         $rules = [
             'file_name' => 'required',
@@ -220,7 +218,6 @@ class FileManagerController extends Controller
 
         ActivityLogHelper::save_activity($auth_id, 'Add Folder', 'ClientFolder');
 
-
         $rules = [
             'folder_name' => 'required|string|max:50',
         ];
@@ -240,14 +237,13 @@ class FileManagerController extends Controller
         $client_folder->save();
 
         $folder_name = $get_parent_folder->folder_name;
-        $folderPath = public_path('uploads/' . $folder_name . '/' . $request->folder_name);
+        $folderPath = public_path('uploads/'.$folder_name.'/'.$request->folder_name);
 
         return response()->json([
             'success' => 'Folder Add Successfully',
             'redirect' => route('user.file_manager.view'),
         ]);
     }
-
 
     public function save_file(Request $request)
     {
@@ -263,7 +259,7 @@ class FileManagerController extends Controller
         }
 
         $client_file = $request->file('file_name')->getClientOriginalName();
-        
+
         // dd($client_file);
 
         if (isset($request->new_file_name) && !empty($request->new_file_name)) {
@@ -278,13 +274,12 @@ class FileManagerController extends Controller
         if ($check_file > 0) {
             return response()->json([
                 'errors' => [
-                    'file' => ['This file is alerdy uploaded']
-                ]
+                    'file' => ['This file is alerdy uploaded'],
+                ],
             ]);
         }
-        
-        ActivityLogHelper::save_activity($user_id, 'Upload File', 'ClientFiles');
 
+        ActivityLogHelper::save_activity($user_id, 'Upload File', 'ClientFiles');
 
         $client_file = new ClientFiles;
         $client_file->file_name = $filename;
@@ -324,9 +319,9 @@ class FileManagerController extends Controller
 
             $folder_name = $new_client_folder->folder_name;
             if ($client_folder == $folder_name) {
-                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/' . $folder_name . '/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
+                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/'.$folder_name.'/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
             } else {
-                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/' . $folder_name . '/' . $client_folder . '/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
+                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/'.$folder_name.'/'.$client_folder.'/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
             }
             if (is_array($file)) {
                 return response()->json($file);
@@ -342,15 +337,14 @@ class FileManagerController extends Controller
                 'redirect' => route('user.file_manager.view', ['id' => hashids_encode($client_file->folder_id)]),
             ]);
 
-
         } else {
             $client_folder = $find_client_folder->folder_name;
 
             $folder_name = $find_client_folder->folder_name;
             if ($client_folder == $folder_name) {
-                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/' . $folder_name . '/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
+                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/'.$folder_name.'/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
             } else {
-                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/' . $folder_name . '/' . $client_folder . '/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
+                $file = fileManagerUploadFile($request->file('file_name'), 'uploads/'.$folder_name.'/'.$client_folder.'/', 'png,jpeg,jpg,svg,csv,doc,docx,xls,xlsx,pdf,webp,zip,mp3,mp4,text/plain');
             }
             if (is_array($file)) {
                 return response()->json($file);
@@ -368,9 +362,7 @@ class FileManagerController extends Controller
             ]);
         }
 
-
     }
-
 
     public function delete_file($id)
     {
@@ -396,7 +388,7 @@ class FileManagerController extends Controller
         DB::beginTransaction();
 
         try {
-            $page_activity = new TempActivity();
+            $page_activity = new TempActivity;
 
             $page_activity->template_id = $request->file_id;
             $page_activity->client_id = hashids_decode($request->lead_id);
@@ -404,8 +396,7 @@ class FileManagerController extends Controller
             $page_activity->activity_route = 'web';
             $page_activity->save();
 
-
-            $page_lead_activity = new LeadActivity();
+            $page_lead_activity = new LeadActivity;
 
             $page_lead_activity->lead_client_id = hashids_decode($request->lead_id);
             $page_lead_activity->title = $request->title;
@@ -432,7 +423,7 @@ class FileManagerController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -444,10 +435,10 @@ class FileManagerController extends Controller
             ActivityLogHelper::save_activity($auth_id, 'file Preview', 'FileTemplate');
         }
         $temp_activity = TempActivity::where('template_id', hashids_decode($id))
-                            ->where('template_type', 'message')
-                            ->where('client_id', hashids_decode($client_id))
-                            ->latest()
-                            ->first();
+            ->where('template_type', 'message')
+            ->where('client_id', hashids_decode($client_id))
+            ->latest()
+            ->first();
 
         if ($temp_activity) {  // Check if $temp_activity is not null
             $temp_activity->last_open = Carbon::now();
@@ -457,9 +448,9 @@ class FileManagerController extends Controller
         }
 
         $temp_lead_activity = LeadActivity::where('file_id', hashids_decode($id))
-                                ->where('lead_client_id', hashids_decode($client_id))
-                                ->latest()
-                                ->first();
+            ->where('lead_client_id', hashids_decode($client_id))
+            ->latest()
+            ->first();
 
         if ($temp_lead_activity) {
             $temp_lead_activity->last_open = Carbon::now();

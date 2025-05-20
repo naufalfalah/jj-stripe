@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\UserSocialMedia;
 use App\Services\GoogleAdsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,26 +11,19 @@ use Illuminate\Support\Facades\Session;
 
 class GoogleAdsAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $googleAdsService = new GoogleAdsService();
+        $googleAdsService = new GoogleAdsService;
         $url = $googleAdsService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->input('code');
 
-        $googleAdsService = new GoogleAdsService();
+        $googleAdsService = new GoogleAdsService;
         $authorization = $googleAdsService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -46,7 +38,7 @@ class GoogleAdsAccountController extends Controller
         if (!isset($authorization['access_token']) || !$authorization['access_token']) {
             return redirect()->route($route)->with('error', 'Oauth failed');
         }
-        
+
         $user = User::find($clientId);
         $refreshToken = json_encode($authorization['refresh_token']);
         $refreshToken = str_replace('\/\/', '//', $refreshToken);
@@ -62,7 +54,6 @@ class GoogleAdsAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

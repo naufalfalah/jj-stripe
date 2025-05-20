@@ -3,13 +3,10 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use App\Models\admin_message_template;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use App\Models\ClientMessageTemplate;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class UserMessageTemplateController extends Controller
 {
@@ -31,7 +28,6 @@ class UserMessageTemplateController extends Controller
         return view('client.whatsap_message_template.show', $data);
     }
 
-
     public function wp_message_update(Request $request)
     {
         $rules = [
@@ -51,23 +47,26 @@ class UserMessageTemplateController extends Controller
             $messageTemplate = $request->wp_message;
 
             $update = ClientMessageTemplate::where('client_id', $clientId)->update([
-                'message_template' => $messageTemplate
+                'message_template' => $messageTemplate,
             ]);
 
             if ($update) {
                 DB::commit();
                 $msg = [
                     'success' => 'WhatsApp Message Template Saved Successfully',
-                    'reload' => true
+                    'reload' => true,
                 ];
+
                 return response()->json($msg);
             } else {
                 DB::rollback();
+
                 return response()->json(['error' => 'No record found to update'], 404);
             }
         } catch (\Exception $e) {
             DB::rollback();
-            return response()->json(['error' => 'WhatsApp Message Template: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'WhatsApp Message Template: '.$e->getMessage()], 500);
         }
     }
 }

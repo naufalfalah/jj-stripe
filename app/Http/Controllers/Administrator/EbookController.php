@@ -3,15 +3,12 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Auth;
 use App\Models\EBook;
 use App\Models\EbookActivity;
-use Carbon\Carbon;
 use App\Models\LeadActivity;
-use App\Models\LeadClient;
-use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
 class EbookController extends Controller
@@ -20,6 +17,7 @@ class EbookController extends Controller
     {
         if ($request->ajax()) {
             $query = EBook::latest();
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('name', function ($data) {
@@ -34,24 +32,24 @@ class EbookController extends Controller
                 ->addColumn('action', function ($data) {
                     return '
                         <div class="table-actions d-flex align-items-center gap-3 fs-6">
-                            <a href="' . route('admin.ebook.edit', $data->hashid) . '" 
+                            <a href="'.route('admin.ebook.edit', $data->hashid).'" 
                                 class="text-warning" data-bs-toggle="tooltip" 
                                 data-bs-placement="bottom" title="Edit">
                                 <i class="bi bi-pencil-fill"></i>
                             </a>
                             <a href="javascript:void(0)" class="text-danger" 
                                 onclick="ajaxRequest(this)" 
-                                data-url="' . route('admin.ebook.delete', $data->hashid) . '" 
+                                data-url="'.route('admin.ebook.delete', $data->hashid).'" 
                                 data-toggle="tooltip" data-placement="top" title="Delete">
                                 <i class="bi bi-trash-fill"></i>
                             </a>
                             <a href="javascript:void(0)" class="text-success copy-button fs-5" 
-                                data-clipboard-text="' . route('ebook_file_view', ['web', $data->hashid]) . '" 
+                                data-clipboard-text="'.route('ebook_file_view', ['web', $data->hashid]).'" 
                                 data-bs-toggle="tooltip" data-bs-placement="bottom" 
                                 title="Copy File Url">
                                 <i class="fadeIn animated bx bx-copy"></i>
                             </a>
-                            <a href="' . route('admin.ebook.details', $data->hashid) . '" 
+                            <a href="'.route('admin.ebook.details', $data->hashid).'" 
                                 class="text-primary fs-5" data-bs-toggle="tooltip" 
                                 data-bs-placement="bottom" title="View File Detail">
                                 <i class="bi bi-eye-fill"></i>
@@ -73,6 +71,7 @@ class EbookController extends Controller
             'breadcrumb' => 'All Customer',
             'title' => 'All Customer',
         ];
+
         return view('admin.ebook.index')->with($data);
     }
 
@@ -83,10 +82,9 @@ class EbookController extends Controller
             'breadcrumb' => 'Add EBook',
             'title' => 'Add EBook',
         ];
+
         return view('admin.ebook.add')->with($data);
     }
-
-
 
     public function save_ebook(Request $request)
     {
@@ -113,7 +111,7 @@ class EbookController extends Controller
             return response()->json(['errors' => $validator->errors()]);
         }
 
-        $ebook = new EBook();
+        $ebook = new EBook;
         if (!empty($request->id)) {
             $ebook = EBook::find($request->id);
 
@@ -166,8 +164,6 @@ class EbookController extends Controller
         return response()->json($msg);
     }
 
-
-
     public function edit($id)
     {
         $data = [
@@ -180,16 +176,15 @@ class EbookController extends Controller
         return view('admin.ebook.add', $data);
     }
 
-
     public function delete($id)
     {
         $ebook = EBook::hashidFind($id)->delete();
+
         return response()->json([
             'success' => 'EBook deleted successfully',
             'reload' => true,
         ]);
     }
-
 
     public function file_view($slug, $id)
     {
@@ -208,7 +203,7 @@ class EbookController extends Controller
                 $existingActivity->save();
             }
         } else {
-            $newActivity = new EbookActivity();
+            $newActivity = new EbookActivity;
             $newActivity->ebook_id = $ebook->id;
             $newActivity->date_time = now();
             $newActivity->last_open = now();
@@ -226,8 +221,6 @@ class EbookController extends Controller
         return view('admin.ebook.file_preview', $data);
     }
 
-
-
     public function details($id)
     {
 
@@ -236,8 +229,8 @@ class EbookController extends Controller
         $ebook = EBook::hashidfind($id);
 
         $total_views = intval(EbookActivity::where('ebook_id', hashids_decode($id))
-        ->sum('total_views'));
-        
+            ->sum('total_views'));
+
         $get_file_activity = EbookActivity::where('ebook_id', hashids_decode($id))->latest()->get();
 
         $get_file_details = EbookActivity::with('ebook')->where('ebook_id', hashids_decode($id))->first();
@@ -245,14 +238,14 @@ class EbookController extends Controller
         $viewed_in_last_7_days = EbookActivity::where('ebook_id', hashids_decode($id))->where('last_open', '>=', $seven_days_ago)->get();
 
         $viewed_in_last_7_days_total = intval(EbookActivity::where('ebook_id', hashids_decode($id))
-        ->where('last_open', '>=', $seven_days_ago)
-        ->sum('total_views'));
+            ->where('last_open', '>=', $seven_days_ago)
+            ->sum('total_views'));
 
         $view_multiple_time = LeadActivity::with('lead')->where('file_id', hashids_decode($id))->get();
 
         $currentDateTime = date('Y-m-d H:i:s');
         $oneWeekAgoDateTime = date('Y-m-d H:i:s', strtotime('-7 days'));
-       
+
         $data = [
             'breadcrumb_main' => 'EBook File Details',
             'breadcrumb' => 'EBook File Details',
@@ -262,9 +255,9 @@ class EbookController extends Controller
             'viewed_last_7_days' => $viewed_in_last_7_days,
             'total_views' => $total_views,
             'viewed_in_last_7_days_total' => $viewed_in_last_7_days_total,
-            'get_file_details' => $get_file_details
+            'get_file_details' => $get_file_details,
         ];
+
         return view('admin.ebook.file_detail', $data);
     }
-
 }

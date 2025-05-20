@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Administrator;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\PremissionType;
-use Illuminate\Http\Request;
 use App\Services\Slug;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class PermissionController extends Controller
 {
@@ -25,8 +25,10 @@ class PermissionController extends Controller
             'permission_type' => PremissionType::get(),
             'data' => Permission::with(['permission_type'])->latest()->get(),
         ];
+
         return view('admin.permission.index')->with($data);
     }
+
     public function edit($id)
     {
 
@@ -42,8 +44,10 @@ class PermissionController extends Controller
             'permission_type' => PremissionType::get(),
             'data' => Permission::with(['permission_type'])->latest()->get(),
         ];
+
         return view('admin.permission.index')->with($data);
     }
+
     public function delete($id)
     {
 
@@ -53,13 +57,13 @@ class PermissionController extends Controller
 
         $delete = Permission::find($id);
         $delete->delete();
+
         return response()->json([
             'success' => 'Record Delete Successfully',
             'redirect' => route('admin.permission.permission'),
         ]);
     }
 
-    
     public function save(Request $request, Slug $slug)
     {
         if (isset($request->id) && !empty($request->id)) {
@@ -89,7 +93,7 @@ class PermissionController extends Controller
                 'redirect' => route('admin.permission.permission'),
             ];
         } else {
-            $permission = new Permission();
+            $permission = new Permission;
             $permission->slug = $slug->createSlug('permissions', $request->name);
             $msg = [
                 'success' => 'Permission added successfully',
@@ -100,6 +104,7 @@ class PermissionController extends Controller
         $permission->permission_type_id = $request->permission_type;
         $permission->name = $request->name;
         $permission->save();
+
         return response()->json($msg);
     }
 }

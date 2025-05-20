@@ -12,26 +12,19 @@ use Illuminate\Support\Facades\Session;
 
 class LinkedInAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $linkedinService = new LinkedInService();
+        $linkedinService = new LinkedInService;
         $url = $linkedinService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->query('code');
 
-        $linkedinService = new LinkedInService();
+        $linkedinService = new LinkedInService;
         $authorization = $linkedinService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -46,7 +39,7 @@ class LinkedInAccountController extends Controller
         if (!isset($authorization['access_token']) || !$authorization['access_token']) {
             return redirect()->route($route)->with('error', 'Oauth failed');
         }
-        
+
         $user = User::find($clientId);
         $user->linkedin_access_token = json_encode($authorization);
         $user->save();
@@ -58,7 +51,6 @@ class LinkedInAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

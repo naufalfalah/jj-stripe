@@ -16,6 +16,7 @@ class LeadController extends Controller
             'title' => 'Client Leads',
             'users' => User::all(),
         ];
+
         return view('admin.lead.index')->with($data);
     }
 
@@ -25,11 +26,12 @@ class LeadController extends Controller
         $lead = LeadClient::find($leadId);
         $lead->client_email = $request->email;
         $lead->save();
-        
+
         $msg = [
             'success' => 'Lead Updated Successfully',
             'redirect' => route('admin.lead.index'),
         ];
+
         return response()->json($msg);
     }
 }

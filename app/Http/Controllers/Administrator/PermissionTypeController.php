@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Administrator;
 use App\Http\Controllers\Controller;
 use App\Models\PremissionType;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class PermissionTypeController extends Controller
 {
@@ -23,8 +23,10 @@ class PermissionTypeController extends Controller
             'title' => 'Permission Types',
             'data' => PremissionType::latest()->get(),
         ];
+
         return view('admin.premission_type.index')->with($data);
     }
+
     public function edit($id)
     {
 
@@ -39,8 +41,10 @@ class PermissionTypeController extends Controller
             'edit' => PremissionType::hashidFind($id),
             'data' => PremissionType::latest()->get(),
         ];
+
         return view('admin.premission_type.index')->with($data);
     }
+
     public function delete($id)
     {
 
@@ -56,6 +60,7 @@ class PermissionTypeController extends Controller
             'redirect' => route('admin.permission_type.permission_type'),
         ]);
     }
+
     public function save(Request $request)
     {
         if (isset($request->id) && !empty($request->id)) {
@@ -95,6 +100,7 @@ class PermissionTypeController extends Controller
         $permission_type->permission_type = $request->permission;
         $permission_type->description = $request->description;
         $permission_type->save();
+
         return response()->json($msg);
     }
 }

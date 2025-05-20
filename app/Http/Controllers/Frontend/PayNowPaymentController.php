@@ -3,39 +3,36 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClientWallet;
-use App\Models\User;
-use Illuminate\Http\Request;
-use App\Models\WalletTopUp;
 use App\Models\PaynowRequests;
+use Illuminate\Http\Request;
 
 class PayNowPaymentController extends Controller
 {
     public function payNowCheckout(Request $request)
     {
         $client = auth('web')->user();
-       
+
         $data = [
             'amount' => $request->price,
             'currency' => 'SGD',
             'email' => $client->email,
             'reference_number' => $client->id,
             'redirect_url' => route('user.paynow.checkout.success'),
-            'webhook' => route('api_paynow_webhook')
+            'webhook' => route('api_paynow_webhook'),
         ];
 
         $payment_request = $this->Create_Payment_Request($data);
-        $PaynowRequests = new PaynowRequests();
+        $PaynowRequests = new PaynowRequests;
         $PaynowRequests->request_id = $payment_request->id;
         $PaynowRequests->data = $payment_request;
         $PaynowRequests->save();
-        
+
         return redirect($payment_request->url);
     }
 
     public function Create_Payment_Request($data)
     {
-        
+
         $curl = curl_init();
 
         curl_setopt_array($curl, [
@@ -49,9 +46,9 @@ class PayNowPaymentController extends Controller
             CURLOPT_POSTFIELDS => json_encode($data),
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'X-BUSINESS-API-KEY:'. env('PAYNOW_SECRET')
+                'X-BUSINESS-API-KEY:'.env('PAYNOW_SECRET'),
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -60,7 +57,7 @@ class PayNowPaymentController extends Controller
         curl_close($curl);
 
         if ($err) {
-            return 'cURL Error #:' . $err;
+            return 'cURL Error #:'.$err;
         } else {
             return json_decode($response);
         }
@@ -70,6 +67,7 @@ class PayNowPaymentController extends Controller
     {
         sleep(15);
         session()->flash('success', 'Top Up Added Successfully');
+
         return redirect()->route('user.wallet.add');
     }
 }

@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\ClientFolder;
 use App\Models\ClientFiles;
+use App\Models\ClientFolder;
 use App\Models\LeadActivity;
 use App\Models\LeadClient;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class ClientFilesManagement extends Controller
 {
@@ -30,7 +29,7 @@ class ClientFilesManagement extends Controller
                 'title' => 'File Manager',
                 // 'folder_id' => ClientFolder::where('client_id', $auth_id)->latest()->first(),
                 'all_folders' => ClientFolder::with('client_files')->where('client_id', hashids_decode($request->client))->latest()->get(),
-                'clients' => User::whereNotNull('email_verified_at')->latest()->get(['id','client_name','email']),
+                'clients' => User::whereNotNull('email_verified_at')->latest()->get(['id', 'client_name', 'email']),
             ];
         } else {
             $data = [
@@ -39,7 +38,7 @@ class ClientFilesManagement extends Controller
                 'title' => 'File Manager',
                 // 'folder_id' => ClientFolder::where('client_id', $auth_id)->latest()->first(),
                 'all_folders' => ClientFolder::with('client_files')->latest()->get(),
-                'clients' => User::whereNotNull('email_verified_at')->latest()->get(['id','client_name','email']),
+                'clients' => User::whereNotNull('email_verified_at')->latest()->get(['id', 'client_name', 'email']),
             ];
         }
 
@@ -55,6 +54,7 @@ class ClientFilesManagement extends Controller
             if (isset($request->folder_id) && !empty($request->folder_id)) {
                 $folder_name = ClientFolder::where('id', $request->folder_id)->latest()->first();
                 $folder_files = ClientFiles::where('folder_id', $request->folder_id)->orWhere('main_folder_id', $request->folder_id)->latest()->get();
+
                 return response([
                     'status' => true,
                     'folder_name' => $folder_name,
@@ -64,6 +64,7 @@ class ClientFilesManagement extends Controller
                 $get_folder_name = ClientFolder::latest()->first();
                 $folder_files = ClientFiles::where('folder_id', hashids_decode($request->request_id_input))->orWhere('main_request_id_input', hashids_decode($request->request_id_input))->latest()->get();
                 $folder_name = 'All Files';
+
                 return response([
                     'status' => true,
                     'folder_name' => $folder_name,
@@ -74,6 +75,7 @@ class ClientFilesManagement extends Controller
                 // $get_folder_name = ClientFolder::latest()->first();
                 $folder_files = ClientFiles::groupBy('file_name')->latest()->get();
                 $folder_name = 'All Files';
+
                 return response([
                     'status' => true,
                     'folder_name' => $folder_name,
@@ -117,7 +119,7 @@ class ClientFilesManagement extends Controller
             WHERE file_id = :file_id;'), [
             'seven_days_ago' => $seven_days_ago,
             'currentDateTime' => $currentDateTime,
-            'file_id' => hashids_decode($id)
+            'file_id' => hashids_decode($id),
         ]);
 
         $data = [
@@ -132,6 +134,7 @@ class ClientFilesManagement extends Controller
             'clients' => LeadClient::all(),
 
         ];
+
         return view('admin.file_manager.file_detail', $data);
     }
 
@@ -197,13 +200,13 @@ class ClientFilesManagement extends Controller
                     $client_file->file_name = $filename;
 
                     $file_path = 'uploads/'.$client_main_folder->folder_name.'/';
-                    $file_path = $file_path . date('Y') . '/';
+                    $file_path = $file_path.date('Y').'/';
                     if (!file_exists($file_path)) {
                         mkdir($file_path, 0755, true);
                     }
                     if (File::exists($main_file)) {
                         $fileName = basename($main_file);
-                        $newPdfPath = $file_path . $fileName;
+                        $newPdfPath = $file_path.$fileName;
                         // Copy the file to the new destination
                         File::copy($main_file, public_path($newPdfPath));
 
@@ -227,6 +230,7 @@ class ClientFilesManagement extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

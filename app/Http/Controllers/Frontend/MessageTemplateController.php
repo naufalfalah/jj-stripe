@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\ActivityLogHelper;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\MessageTemplate;
-use App\Models\LeadClient;
-use App\Models\TempActivity;
 use App\Models\LeadActivity;
+use App\Models\LeadClient;
+use App\Models\MessageTemplate;
+use App\Models\TempActivity;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Str;
-use App\Helpers\ActivityLogHelper;
-use Carbon\Carbon;
+use Yajra\DataTables\Facades\DataTables;
 
 class MessageTemplateController extends Controller
 {
@@ -25,7 +23,6 @@ class MessageTemplateController extends Controller
         $activity = 'Message Template';
         $table = 'MessageTemplate';
         ActivityLogHelper::save_activity_with_check($auth_id, $activity, $table);
-
 
         if ($request->ajax()) {
             return DataTables::of(MessageTemplate::query()->with('message_activity')->where('client_id', $auth_id)->latest())
@@ -38,7 +35,8 @@ class MessageTemplateController extends Controller
                 })
                 ->addColumn('sent', function ($data) {
                     $count = $data->message_activity->count();
-                    return $count > 0 ? $count . ' times' : '-';
+
+                    return $count > 0 ? $count.' times' : '-';
                 })
                 ->addColumn('last_sent', function ($data) {
                     return $data->message_activity->count() > 0 ? $data->message_activity[0]->created_at->format('M d - h:i A') : '-';
@@ -61,7 +59,6 @@ class MessageTemplateController extends Controller
             'title' => 'Message Template',
             'template_count' => MessageTemplate::where('client_id', $auth_id)->count(),
         ];
-
 
         return view('client.message_template.index', $data);
     }
@@ -88,7 +85,7 @@ class MessageTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $message_template = new MessageTemplate();
+            $message_template = new MessageTemplate;
             if ($request->id && !empty($request->id)) {
                 $message_template = $message_template->findOrfail($request->id);
                 ActivityLogHelper::save_activity($auth_id, 'Message Template Updated', 'MessageTemplate');
@@ -96,7 +93,7 @@ class MessageTemplateController extends Controller
                 if (isset($request->reopen) && !empty($request->reopen)) {
                     $msg = [
                         'success' => 'Message Template Updated Successfully',
-                        'redirect' => route('user.message-template.temp_details', ['id' => hashids_encode($request->id), 'send_message' => 'send_message'])
+                        'redirect' => route('user.message-template.temp_details', ['id' => hashids_encode($request->id), 'send_message' => 'send_message']),
                     ];
                 } else {
                     $msg = [
@@ -104,7 +101,6 @@ class MessageTemplateController extends Controller
                         'reload' => true,
                     ];
                 }
-
 
                 if ($request->type == 'note') {
                     ActivityLogHelper::save_activity($auth_id, 'Private Note message Template save', 'MessageTemplate');
@@ -132,8 +128,6 @@ class MessageTemplateController extends Controller
             $message_template->description = $request->template_message;
             $message_template->save();
 
-
-
             // Commit the transaction
             DB::commit();
 
@@ -143,7 +137,7 @@ class MessageTemplateController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -162,8 +156,9 @@ class MessageTemplateController extends Controller
             'title' => 'Template Detail',
             'data' => $message_template,
             'clients' => LeadClient::where('client_id', auth('web')->user()->id)->get(['id', 'name', 'email', 'mobile_number']),
-            'send_message' => $send_message
+            'send_message' => $send_message,
         ];
+
         return view('client.message_template.temp_detail', $data);
     }
 
@@ -188,10 +183,10 @@ class MessageTemplateController extends Controller
 
         DB::beginTransaction();
         try {
-            $copy_message_template = new MessageTemplate();
+            $copy_message_template = new MessageTemplate;
 
             $copy_message_template->client_id = auth('web')->id();
-            $copy_message_template->title = 'Copy of ' . $request->copy_data['title'];
+            $copy_message_template->title = 'Copy of '.$request->copy_data['title'];
             $copy_message_template->description = $request->copy_data['description'];
             if (isset($request->copy_data['private_note']) && !empty($request->copy_data['private_note'])) {
                 $copy_message_template->private_note = $request->copy_data['private_note'];
@@ -207,7 +202,7 @@ class MessageTemplateController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
 
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 
@@ -216,7 +211,6 @@ class MessageTemplateController extends Controller
 
         $auth_id = auth('web')->id();
         ActivityLogHelper::save_activity($auth_id, 'Message Template Send', 'MessageTemplate');
-
 
         // $rules = [
         //     'client' => 'required',
@@ -232,7 +226,7 @@ class MessageTemplateController extends Controller
         DB::beginTransaction();
 
         try {
-            $message_activity = new TempActivity();
+            $message_activity = new TempActivity;
 
             $message_activity->template_id = $request->temp_id;
             $message_activity->client_id = $request->lead_id;
@@ -240,8 +234,7 @@ class MessageTemplateController extends Controller
             $message_activity->activity_route = 'web';
             $message_activity->save();
 
-
-            $message_lead_activity = new LeadActivity();
+            $message_lead_activity = new LeadActivity;
 
             $message_lead_activity->lead_client_id = $request->lead_id;
             $message_lead_activity->title = $request->title;
@@ -268,7 +261,7 @@ class MessageTemplateController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error lead: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error lead: '.$e->getMessage()], 500);
         }
     }
 }

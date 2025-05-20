@@ -3,18 +3,16 @@
 namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\View;
-use App\Models\FacebookAccessToken;
 use App\Models\CampaignNote;
+use App\Models\FacebookAccessToken;
 use App\Models\FacebookAdsAccount;
 use App\Models\FacebookReport;
-use App\Models\PieChartData;
-use Illuminate\Support\Facades\Auth;
-use Spatie\Browsershot\Browsershot;
-use Socialite;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\View;
+use Socialite;
+use Spatie\Browsershot\Browsershot;
 
 class FacebookAdsReportController extends Controller
 {
@@ -63,6 +61,7 @@ class FacebookAdsReportController extends Controller
             FacebookAdsAccount::truncate();
             FacebookReport::truncate();
             CampaignNote::where('ads_report', 'facebook_ads_report')->delete();
+
             return response()->json([
                 'success' => 'Facebook Account Disconnected Successfully',
             ]);
@@ -71,29 +70,30 @@ class FacebookAdsReportController extends Controller
 
     public function update_act_expiry_date(Request $request)
     {
-    
+
         $fb_ads_account = FacebookAdsAccount::where('act_id', $request->account_id)->first();
-    
+
         if ($fb_ads_account) {
 
             $fb_ads_account->account_expiry_date = $request->expiry_date;
             $fb_ads_account->save();
-    
+
             $msg = [
                 'success' => 'Facebook Ads Account Expiry Date Updated Successfully',
-                'reload' => true
+                'reload' => true,
             ];
+
             return response()->json($msg);
         } else {
-            
+
             $msg = [
                 'error' => 'Facebook Ads Account Not Found',
-                'reload' => true
+                'reload' => true,
             ];
+
             return response()->json($msg);
         }
     }
-    
 
     public function fb_ads_report()
     {
@@ -141,19 +141,19 @@ class FacebookAdsReportController extends Controller
                     }
 
                     if (!isset($val->daily_budget) || $val->daily_budget === '0') {
-                        
+
                         $startDate = new \DateTime($val->start_time ?? now());
                         $endDate = new \DateTime($val->stop_time ?? now());
-                    
+
                         $interval = $startDate->diff($endDate);
-                
+
                         $total_days = $interval->days + 1;
 
                         if (isset($val->lifetime_budget) && $val->lifetime_budget != 0) {
                             $val->daily_budget = round($val->lifetime_budget / $total_days);
                         }
-                        
-                    };
+
+                    }
 
                     if (!isset($val->daily_budget) && !isset($val->lifetime_budget)) {
                         $daily_budget = 0;
@@ -197,7 +197,7 @@ class FacebookAdsReportController extends Controller
             'start_date' => $facebook_report->start_date ?? '',
             'end_date' => $facebook_report->end_date ?? '',
             'campaign_notes' => $campaign_notes,
-            'summary_graph' => $facebook_report ?  json_decode($facebook_report->summary_graph, true) : '',
+            'summary_graph' => $facebook_report ? json_decode($facebook_report->summary_graph, true) : '',
             'pie_chart_data' => $facebook_report ? json_decode($facebook_report->pie_chart_data, true) : '',
             'summary_detail' => $facebook_report ? json_decode($facebook_report->summary_detail) : '',
             'gender_graph' => $facebook_report ? json_decode($facebook_report->gender_graph_data) : '',
@@ -206,11 +206,11 @@ class FacebookAdsReportController extends Controller
             'last_updated_date' => isset($format_last_update) ? $format_last_update->format('M d, Y') : 'No Data Found',
             'check_access_token' => FacebookAccessToken::where('admin_id', auth('admin')->user()->id)->count(),
             'get_facebook_ads_account' => $facebookAdsAccount,
-            'campaigns_with_notes' => $campaigns_with_notes
+            'campaigns_with_notes' => $campaigns_with_notes,
         ];
 
         return view('admin.fb_report.index', $data);
-        die();
+        exit();
     }
 
     public function save_fb_report(Request $request)
@@ -248,10 +248,10 @@ class FacebookAdsReportController extends Controller
         $save_fb_report->adsets_daily_budget = json_encode($get_fb_campaigns_daily_budget);
         // get campaigns adset daily budget code end
 
-        //get adset code start
+        // get adset code start
         $get_fb_adsets = $this->get_facebook_adsets($startDate, $endDate, $act_id);
         $save_fb_report->adsets = json_encode($get_fb_adsets);
-        //get adset code end
+        // get adset code end
 
         // get ads code start
         $get_fb_ads = $this->get_facebook_ads($startDate, $endDate, $act_id);
@@ -277,20 +277,20 @@ class FacebookAdsReportController extends Controller
         $save_fb_report->pie_chart_data = $get_pie_chart_data;
         // pie chart code end
 
-        //get summart data ads code start
+        // get summart data ads code start
         $get_summary_data = $this->get_summary_data($startDate, $endDate, $act_id, $commaSeparatedIDs);
         $save_fb_report->summary_detail = $get_summary_data;
-        //get summart data ads code end
+        // get summart data ads code end
 
         // get gender graph code start
         $get_gender_graph_data = $this->get_gender_graph_data($startDate, $endDate, $act_id, $commaSeparatedIDs);
         $save_fb_report->gender_graph_data = $get_gender_graph_data;
         // get gender graph code end
 
-        //get age graph code start
+        // get age graph code start
         $get_age_graph_data = $this->get_age_graph_data($startDate, $endDate, $act_id, $commaSeparatedIDs);
         $save_fb_report->age_graph_data = $get_age_graph_data;
-        //get age graph code start
+        // get age graph code start
         $save_fb_report->act_id = $act_id;
         $save_fb_report->start_date = $startDate;
         $save_fb_report->end_date = $endDate;
@@ -298,10 +298,11 @@ class FacebookAdsReportController extends Controller
 
         $msg = [
             'success' => 'Facebook Report Data Fetch Successfully',
-            'reload' => true
+            'reload' => true,
         ];
+
         return response()->json($msg);
-        die();
+        exit();
     }
 
     public function campaign_note_save(Request $request)
@@ -318,7 +319,7 @@ class FacebookAdsReportController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        $campaign_note = new CampaignNote();
+        $campaign_note = new CampaignNote;
         $campaign_note->note_date = $request->note_date;
         $campaign_note->campaign_name = $request->campaign;
         $campaign_note->note = $request->notes;
@@ -326,7 +327,7 @@ class FacebookAdsReportController extends Controller
 
         $msg = [
             'success' => 'Campaign Notes Added Successfully',
-            'redirect' => route('admin.facebook-ads-report.fb_ads_report')
+            'redirect' => route('admin.facebook-ads-report.fb_ads_report'),
         ];
 
         return response()->json($msg);
@@ -338,7 +339,7 @@ class FacebookAdsReportController extends Controller
         $campaign_note->delete();
         $msg = [
             'success' => 'Campaign Notes Deleted Successfully',
-            'redirect' => route('admin.facebook-ads-report.fb_ads_report')
+            'redirect' => route('admin.facebook-ads-report.fb_ads_report'),
         ];
 
         return response()->json($msg);
@@ -367,11 +368,11 @@ class FacebookAdsReportController extends Controller
             $summary_impressions = '';
             if (is_array($summary_graph_info) && !empty($summary_graph_info['dates'])) {
                 foreach ($summary_graph_info['dates'] as $key => $summary_graph_v) {
-                    $summary_dates .= "'" . $summary_graph_v . "',";
-                    $summary_click .= "'" . round($summary_graph_info['clicks'][$key]) . "',";
-                    $summary_cpc .= "'" . round($summary_graph_info['cpc'][$key]) . "',";
-                    $summary_ctr .= "'" . round($summary_graph_info['ctr'][$key]) . "',";
-                    $summary_impressions .= "'" . round($summary_graph_info['impressions'][$key]) . "',";
+                    $summary_dates .= "'".$summary_graph_v."',";
+                    $summary_click .= "'".round($summary_graph_info['clicks'][$key])."',";
+                    $summary_cpc .= "'".round($summary_graph_info['cpc'][$key])."',";
+                    $summary_ctr .= "'".round($summary_graph_info['ctr'][$key])."',";
+                    $summary_impressions .= "'".round($summary_graph_info['impressions'][$key])."',";
                 }
             }
         }
@@ -380,11 +381,11 @@ class FacebookAdsReportController extends Controller
         $campaigns_with_notes = [];
 
         if (isset($campaigns->data)) {
-        
+
             foreach ($campaigns->data as $val) {
                 if (isset($val->insights) && isset($val->insights->data[0])) {
                     $campaign_notes_for_campaign = $campaign_notes->where('campaign_name', $val->name)->pluck('note')->toArray();
-    
+
                     $total_leads = 0;
                     $cost_per_lead = 0;
                     if (isset($val->insights->data[0]->cost_per_action_type)) {
@@ -395,12 +396,12 @@ class FacebookAdsReportController extends Controller
                             }
                         }
                     }
-    
+
                     if ($total_leads !== 0) {
                         $total_spend = $val->insights->data[0]->spend;
                         $cost_per_lead = $total_spend / $total_leads;
                     }
-    
+
                     $campaigns_with_notes[] = [
                         'name' => $val->name,
                         'campaign_notes' => $campaign_notes_for_campaign,
@@ -415,7 +416,6 @@ class FacebookAdsReportController extends Controller
                 }
             }
         }
-
 
         $get_add_account_name = FacebookAdsAccount::where('act_id', $get_fb_report->act_id)->first();
 
@@ -435,7 +435,7 @@ class FacebookAdsReportController extends Controller
             'ctr' => $widgets_data->data[0]->ctr ?? '0',
             'campaign_notes' => $campaign_notes,
             'generated_on' => Carbon::now()->format('M-d-Y H:i A'),
-            'summary_graph' => $get_fb_report ?  json_decode($get_fb_report->summary_graph, true) : '',
+            'summary_graph' => $get_fb_report ? json_decode($get_fb_report->summary_graph, true) : '',
             'pie_chart_data' => $get_fb_report ? json_decode($get_fb_report->pie_chart_data, true) : '',
             'summary_detail' => $get_fb_report ? json_decode($get_fb_report->summary_detail) : '',
             'gender_graph' => $get_fb_report ? json_decode($get_fb_report->gender_graph_data) : '',
@@ -446,7 +446,7 @@ class FacebookAdsReportController extends Controller
             'summary_cpc' => '['.$summary_cpc.']' ?? '0',
             'summary_ctr' => '['.$summary_ctr.']' ?? '0',
             'summary_data' => $summary_data,
-            'campaigns_with_notes' => $campaigns_with_notes
+            'campaigns_with_notes' => $campaigns_with_notes,
         ];
         // return view('admin.fb_report.pdf_file')->with($data);
         $html = view('admin.fb_report.pdf_file')->with($data)->render();
@@ -454,21 +454,21 @@ class FacebookAdsReportController extends Controller
         sleep(20);
         $timeout = 90000;
         $pdf = Browsershot::html($html)
-                    ->setTimeout($timeout)
-                    ->setIncludePath('$PATH:'.$nmp_path)
-                    ->waitUntilNetworkIdle()
-                    ->format('A4')
-                    ->pdf();
+            ->setTimeout($timeout)
+            ->setIncludePath('$PATH:'.$nmp_path)
+            ->waitUntilNetworkIdle()
+            ->format('A4')
+            ->pdf();
 
-        $fileName = $get_add_account_name->act_name . ' - ' . Carbon::now()->format('Y-m-d') . '.pdf';
+        $fileName = $get_add_account_name->act_name.' - '.Carbon::now()->format('Y-m-d').'.pdf';
 
-        $pdfPath = storage_path('app/public/' . $fileName);
+        $pdfPath = storage_path('app/public/'.$fileName);
         file_put_contents($pdfPath, $pdf);
 
         return response()->download($pdfPath)->deleteFileAfterSend(true);
     }
 
-    private function get_facebook_campaigns($startDate = null, $endDate = null, $act_id)
+    private function get_facebook_campaigns($startDate, $endDate, $act_id)
     {
 
         $access_token = $this->get_admin_access_token();
@@ -476,7 +476,6 @@ class FacebookAdsReportController extends Controller
         $url = "https://graph.facebook.com/v19.0/$ad_account_id/campaigns";
         $fields = "name,status,id,daily_budget,lifetime_budget,start_time,stop_time,created_time,insights.time_range({'since':'$startDate','until':'$endDate'}){cpc,ctr,impressions,clicks,spend,cost_per_action_type}";
         $limit = 500;
-
 
         $curl = curl_init();
 
@@ -487,9 +486,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -497,6 +496,7 @@ class FacebookAdsReportController extends Controller
         if ($response === false) {
             $error_message = curl_error($curl);
             curl_close($curl);
+
             return "cURL Error: $error_message";
         }
 
@@ -509,7 +509,7 @@ class FacebookAdsReportController extends Controller
 
         $campaigns = json_decode($response, true);
         if (isset($campaigns['error'])) {
-            return 'Facebook API Error: ' . $campaigns['error']['message'];
+            return 'Facebook API Error: '.$campaigns['error']['message'];
         }
 
         $active_campaigns = array_filter($campaigns['data'], function ($campaign) {
@@ -520,19 +520,19 @@ class FacebookAdsReportController extends Controller
         return $campaigns;
     }
 
-    private function get_facebook_adsets_daily_budget($startDate = null, $endDate = null, $act_id)
+    private function get_facebook_adsets_daily_budget($startDate, $endDate, $act_id)
     {
-        
+
         $access_token = $this->get_admin_access_token();
         $ad_account_id = $act_id;
-    
+
         $url = "https://graph.facebook.com/v19.0/$ad_account_id/adsets";
         $time_range = urlencode(json_encode(['since' => $startDate, 'until' => $endDate]));
         $fields = 'bid_amount,name,daily_budget,campaign_id';
         $access_token_param = urlencode($access_token);
-    
+
         $curl = curl_init();
-    
+
         curl_setopt_array($curl, [
             CURLOPT_URL => "$url?time_range=$time_range&fields=$fields&access_token=$access_token_param",
             CURLOPT_RETURNTRANSFER => true,
@@ -541,37 +541,36 @@ class FacebookAdsReportController extends Controller
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=1; ps_n=1'
+                'Cookie: ps_l=1; ps_n=1',
             ],
         ]);
-    
+
         $response = curl_exec($curl);
-    
+
         if ($response === false) {
             $error_message = curl_error($curl);
             curl_close($curl);
+
             return "cURL Error: $error_message";
         }
-    
+
         $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
-    
+
         if ($http_status !== 200) {
             return "HTTP Error: $http_status";
         }
-    
+
         $adsets = json_decode($response, true);
         if (isset($adsets['error'])) {
-            return 'Facebook API Error: ' . $adsets['error']['message'];
+            return 'Facebook API Error: '.$adsets['error']['message'];
         }
-    
+
         return $adsets;
     }
-    
 
-    private function get_facebook_adsets($startDate = null, $endDate = null, $act_id)
+    private function get_facebook_adsets($startDate, $endDate, $act_id)
     {
-
 
         $access_token = $this->get_admin_access_token();
         $ad_account_id = $act_id;
@@ -581,7 +580,6 @@ class FacebookAdsReportController extends Controller
         $fields = "adset_id,adset_name,campaign_id,campaign_name,clicks,impressions,ctr,cpc,spend,cost_per_action_type&time_range={'since':'$startDate','until':'$endDate'}";
         $limit = 500;
 
-
         $curl = curl_init();
 
         curl_setopt_array($curl, [
@@ -594,9 +592,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -604,12 +602,12 @@ class FacebookAdsReportController extends Controller
         if ($response === false) {
             $error_message = curl_error($curl);
             curl_close($curl);
+
             return "cURL Error: $error_message";
         }
 
         $http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
-
 
         if ($http_status !== 200) {
             return "HTTP Error: $http_status";
@@ -617,14 +615,13 @@ class FacebookAdsReportController extends Controller
 
         $adsets = json_decode($response, true);
         if (isset($ads['error'])) {
-            return 'Facebook API Error: ' . $ads['error']['message'];
+            return 'Facebook API Error: '.$ads['error']['message'];
         }
-
 
         return $adsets;
     }
 
-    private function get_facebook_ads($startDate = null, $endDate = null, $act_id)
+    private function get_facebook_ads($startDate, $endDate, $act_id)
     {
 
         $access_token = $this->get_admin_access_token();
@@ -634,7 +631,6 @@ class FacebookAdsReportController extends Controller
         $fields = "ad_id,ad_name,adset_name,adset_id,created_time,campaign_name,clicks,impressions,ctr,cpc,spend,cost_per_action_type&time_range={'since':'$startDate','until':'$endDate'}";
         $limit = 500;
 
-
         $curl = curl_init();
 
         curl_setopt_array($curl, [
@@ -647,9 +643,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         $response = curl_exec($curl);
@@ -657,6 +653,7 @@ class FacebookAdsReportController extends Controller
         if ($response === false) {
             $error_message = curl_error($curl);
             curl_close($curl);
+
             return "cURL Error: $error_message";
         }
 
@@ -669,14 +666,13 @@ class FacebookAdsReportController extends Controller
 
         $ads = json_decode($response, true);
         if (isset($ads['error'])) {
-            return 'Facebook API Error: ' . $ads['error']['message'];
+            return 'Facebook API Error: '.$ads['error']['message'];
         }
-
 
         return $ads;
     }
 
-    private function get_summary_data($startDate = null, $endDate = null, $act_id, $campaignIDs)
+    private function get_summary_data($startDate, $endDate, $act_id, $campaignIDs)
     {
         // Base URL
         $base_url = 'https://graph.facebook.com/v19.0/';
@@ -689,9 +685,7 @@ class FacebookAdsReportController extends Controller
 
         $access_token = $this->get_admin_access_token();
 
-
-        $url = $base_url . $act_id . '/insights?fields=clicks,impressions,ctr,cpc,spend,cost_per_action_type&default_summary=true&date_preset=maximum&time_range=' . urlencode($time_range) . '&level=ad&limit=9999&filtering=' . urlencode($filtering) . '&access_token=' . urlencode($access_token) . '&time_increment=1';
-
+        $url = $base_url.$act_id.'/insights?fields=clicks,impressions,ctr,cpc,spend,cost_per_action_type&default_summary=true&date_preset=maximum&time_range='.urlencode($time_range).'&level=ad&limit=9999&filtering='.urlencode($filtering).'&access_token='.urlencode($access_token).'&time_increment=1';
 
         // Initialize cURL session
         $curl = curl_init();
@@ -707,9 +701,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         // Execute cURL request
@@ -717,7 +711,7 @@ class FacebookAdsReportController extends Controller
 
         // Check for cURL errors
         if (curl_errno($curl)) {
-            $response = 'Error: ' . curl_error($curl);
+            $response = 'Error: '.curl_error($curl);
         }
 
         // Close cURL session
@@ -766,10 +760,11 @@ class FacebookAdsReportController extends Controller
             'spend' => round($data['summary']['spend'], 2),
             'cost_per_result' => round($data['summary']['cost_per_action_type'][0]['value'], 2),
         ];
+
         return json_encode($datewiseData, true);
     }
 
-    private function get_pie_chart_data($startDate = null, $endDate = null, $act_id, $campaignIDs)
+    private function get_pie_chart_data($startDate, $endDate, $act_id, $campaignIDs)
     {
 
         $base_url = "https://graph.facebook.com/v19.0/$act_id/insights";
@@ -786,7 +781,7 @@ class FacebookAdsReportController extends Controller
             'access_token' => $access_token,
         ];
 
-        $url = $base_url . '?' . http_build_query($params);
+        $url = $base_url.'?'.http_build_query($params);
 
         $curl = curl_init();
 
@@ -801,9 +796,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         // Execute cURL request
@@ -813,7 +808,6 @@ class FacebookAdsReportController extends Controller
         curl_close($curl);
 
         $jsonData = $response;
-
 
         $data = json_decode($jsonData, true);
 
@@ -858,10 +852,11 @@ class FacebookAdsReportController extends Controller
             'ctr' => $ctr,
             'cpc' => $cpc,
         ];
+
         return json_encode($result, true);
     }
 
-    private function get_summary_graph_data($startDate = null, $endDate = null, $act_id, $campaignIDs)
+    private function get_summary_graph_data($startDate, $endDate, $act_id, $campaignIDs)
     {
         // Base URL
         $base_url = 'https://graph.facebook.com/v19.0/';
@@ -874,8 +869,7 @@ class FacebookAdsReportController extends Controller
 
         $access_token = $this->get_admin_access_token();
 
-
-        $url = $base_url . $act_id . '/insights?fields=clicks,impressions,ctr,cpc&date_preset=maximum&time_range=' . urlencode($time_range) . '&level=campaign&limit=9999&filtering=' . urlencode($filtering) . '&access_token=' . urlencode($access_token) . '&time_increment=1';
+        $url = $base_url.$act_id.'/insights?fields=clicks,impressions,ctr,cpc&date_preset=maximum&time_range='.urlencode($time_range).'&level=campaign&limit=9999&filtering='.urlencode($filtering).'&access_token='.urlencode($access_token).'&time_increment=1';
 
         // Initialize cURL session
         $curl = curl_init();
@@ -891,9 +885,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         // Execute cURL request
@@ -901,7 +895,7 @@ class FacebookAdsReportController extends Controller
 
         // Check for cURL errors
         if (curl_errno($curl)) {
-            $response = 'Error: ' . curl_error($curl);
+            $response = 'Error: '.curl_error($curl);
         }
 
         // Close cURL session
@@ -917,7 +911,7 @@ class FacebookAdsReportController extends Controller
             'clicks' => [],
             'impressions' => [],
             'ctr' => [],
-            'cpc' => []
+            'cpc' => [],
         ];
 
         foreach ($dateRange as $date) {
@@ -941,7 +935,7 @@ class FacebookAdsReportController extends Controller
         return json_encode($datewiseData, true);
     }
 
-    private function get_gender_graph_data($startDate = null, $endDate = null, $act_id, $campaignIDs)
+    private function get_gender_graph_data($startDate, $endDate, $act_id, $campaignIDs)
     {
         // Base URL
         $base_url = 'https://graph.facebook.com/v19.0/';
@@ -954,8 +948,7 @@ class FacebookAdsReportController extends Controller
 
         $access_token = $this->get_admin_access_token();
 
-        $url = $base_url . $act_id . '/insights?fields=clicks,impressions,ctr,cpc,spend,cost_per_action_type&default_summary=true&date_preset=maximum&time_range=' . urlencode($time_range) . '&level=ad&limit=9999&filtering=' . urlencode($filtering) . '&access_token=' . urlencode($access_token) . '&time_increment=1&breakdowns=gender';
-
+        $url = $base_url.$act_id.'/insights?fields=clicks,impressions,ctr,cpc,spend,cost_per_action_type&default_summary=true&date_preset=maximum&time_range='.urlencode($time_range).'&level=ad&limit=9999&filtering='.urlencode($filtering).'&access_token='.urlencode($access_token).'&time_increment=1&breakdowns=gender';
 
         // Initialize cURL session
         $curl = curl_init();
@@ -971,9 +964,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         // Execute cURL request
@@ -981,7 +974,7 @@ class FacebookAdsReportController extends Controller
 
         // Check for cURL errors
         if (curl_errno($curl)) {
-            $response = 'Error: ' . curl_error($curl);
+            $response = 'Error: '.curl_error($curl);
         }
 
         // Close cURL session
@@ -993,7 +986,7 @@ class FacebookAdsReportController extends Controller
         $gender_data = [
             'male' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
             'female' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
-            'unknown' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0]
+            'unknown' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
         ];
 
         if (empty($data['data'])) {
@@ -1019,10 +1012,11 @@ class FacebookAdsReportController extends Controller
             $gender_data[$gender]['ctr'] += $ctr;
             $gender_data[$gender]['impressions'] += $impressions;
         }
+
         return json_encode($gender_data, true);
     }
 
-    private function get_age_graph_data($startDate = null, $endDate = null, $act_id, $campaignIDs)
+    private function get_age_graph_data($startDate, $endDate, $act_id, $campaignIDs)
     {
         // Base URL
         $base_url = 'https://graph.facebook.com/v19.0/';
@@ -1035,8 +1029,7 @@ class FacebookAdsReportController extends Controller
 
         $access_token = $this->get_admin_access_token();
 
-        $url = $base_url . $act_id . '/insights?fields=clicks,impressions,ctr,cpc,spend,cost_per_action_type&default_summary=true&date_preset=maximum&time_range=' . urlencode($time_range) . '&level=ad&limit=9999&filtering=' . urlencode($filtering) . '&access_token=' . urlencode($access_token) . '&time_increment=1&breakdowns=age';
-
+        $url = $base_url.$act_id.'/insights?fields=clicks,impressions,ctr,cpc,spend,cost_per_action_type&default_summary=true&date_preset=maximum&time_range='.urlencode($time_range).'&level=ad&limit=9999&filtering='.urlencode($filtering).'&access_token='.urlencode($access_token).'&time_increment=1&breakdowns=age';
 
         // Initialize cURL session
         $curl = curl_init();
@@ -1052,9 +1045,9 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
 
         // Execute cURL request
@@ -1062,7 +1055,7 @@ class FacebookAdsReportController extends Controller
 
         // Check for cURL errors
         if (curl_errno($curl)) {
-            $response = 'Error: ' . curl_error($curl);
+            $response = 'Error: '.curl_error($curl);
         }
 
         // Close cURL session
@@ -1077,7 +1070,7 @@ class FacebookAdsReportController extends Controller
             '35-44' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
             '45-54' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
             '55-64' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
-            '65+' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0]
+            '65+' => ['clicks' => 0, 'cpc' => 0, 'ctr' => 0, 'impressions' => 0],
         ];
 
         if (empty($data['data'])) {
@@ -1103,6 +1096,7 @@ class FacebookAdsReportController extends Controller
             $age_data[$age]['ctr'] += $ctr;
             $age_data[$age]['impressions'] += $impressions;
         }
+
         return json_encode($age_data, true);
     }
 
@@ -1125,7 +1119,7 @@ class FacebookAdsReportController extends Controller
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
             CURLOPT_HTTPHEADER => [
-                'Cookie: ps_l=0; ps_n=0'
+                'Cookie: ps_l=0; ps_n=0',
             ],
         ]);
 
@@ -1134,6 +1128,7 @@ class FacebookAdsReportController extends Controller
         if ($response === false) {
             $error_message = curl_error($curl);
             curl_close($curl);
+
             return "cURL Error: $error_message";
         }
 
@@ -1146,7 +1141,7 @@ class FacebookAdsReportController extends Controller
 
         $ad_accounts = json_decode($response, true);
         if (isset($ad_accounts['error'])) {
-            return 'Facebook API Error: ' . $ad_accounts['error']['message'];
+            return 'Facebook API Error: '.$ad_accounts['error']['message'];
         }
 
         return $ad_accounts;
@@ -1159,6 +1154,7 @@ class FacebookAdsReportController extends Controller
             $admin_access_token = $get_access_token->access_token;
             $get_access_token->last_update = now();
             $get_access_token->save();
+
             return $admin_access_token;
         }
 
@@ -1191,7 +1187,7 @@ class FacebookAdsReportController extends Controller
             $ctrVal = $ctr[$i];
             $cpcVal = $cpc[$i];
 
-            $dataTable .= "['" . $date . "', " . $impression . ', ' . $click . ', ' . $ctrVal . ', ' . $cpcVal . ']';
+            $dataTable .= "['".$date."', ".$impression.', '.$click.', '.$ctrVal.', '.$cpcVal.']';
 
             if ($i < $numRows - 1) {
                 $dataTable .= ', ';
@@ -1202,6 +1198,4 @@ class FacebookAdsReportController extends Controller
 
         return $dataTable;
     }
-
-
 }

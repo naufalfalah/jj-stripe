@@ -3,15 +3,13 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\Ads;
 use App\Models\ClientTour;
 use App\Models\ClientWallet;
 use App\Models\Tour;
-use App\Models\User;
-use App\Models\Ads;
 use App\Models\Transections;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Stripe;
-use App\Models\WalletTopUp;
 
 class StripePaymentController extends Controller
 {
@@ -22,8 +20,7 @@ class StripePaymentController extends Controller
 
             $stripe = new \Stripe\StripeClient((env('STRIPE_SECRET')));
 
-            $redirectUrl = route('user.stripe.checkout.success', ['price' => $price]) . '&session_id={CHECKOUT_SESSION_ID}';
-
+            $redirectUrl = route('user.stripe.checkout.success', ['price' => $price]).'&session_id={CHECKOUT_SESSION_ID}';
 
             $response = $stripe->checkout->sessions->create([
                 'success_url' => $redirectUrl,
@@ -42,21 +39,20 @@ class StripePaymentController extends Controller
                             'unit_amount' => 100 * $price,
                             'currency' => 'SGD',
                         ],
-                        'quantity' => 1
+                        'quantity' => 1,
                     ],
                 ],
 
                 'mode' => 'payment',
                 'allow_promotion_codes' => true,
                 'metadata' => [
-                    'ad_id' => $ad_id
+                    'ad_id' => $ad_id,
                 ],
             ]);
 
-
             return redirect($response['url']);
         } catch (\Exception $e) {
-            return back()->with('error', 'An error occurred during checkout: ' . $e->getMessage());
+            return back()->with('error', 'An error occurred during checkout: '.$e->getMessage());
         }
     }
 
@@ -80,12 +76,12 @@ class StripePaymentController extends Controller
                 'amount_in' => $price,
                 'topup_type' => 'stripe',
                 'data' => $response,
-                'status' => 'completed'
-                
+                'status' => 'completed',
+
             ]);
         } else {
             $ads = Ads::find($response->metadata->ad_id);
-        
+
             $add_transaction = new Transections;
             $add_transaction->client_id = $user->id;
             $add_transaction->transaction_id = $response->id;
@@ -94,7 +90,7 @@ class StripePaymentController extends Controller
             $add_transaction->topup_type = 'stripe';
             $add_transaction->status = 'completed';
             $add_transaction->save();
-            
+
             if ($ads->domain_is == 'request_to_purchase' && $ads->is_domain_pay == 0) {
                 // Pause for 1 seconds
                 sleep(1);
@@ -123,14 +119,14 @@ class StripePaymentController extends Controller
                 $add_transaction->save();
                 $ads->is_hosting_pay = 1;
             }
-          
+
             $total_amt = $ads->spend_amount + $price;
             if ($ads->spend_type == 'daily') {
                 $amt = $ads->daily_budget * 30;
             } else {
                 $amt = $ads->daily_budget;
             }
-           
+
             if ($total_amt == $amt || $total_amt > $amt) {
                 $ads->payment_status = 1;
             }
@@ -147,6 +143,7 @@ class StripePaymentController extends Controller
         ]);
 
         session()->flash('success', 'Top Up Added Successfully');
+
         return redirect()->route('user.wallet.add');
     }
 }

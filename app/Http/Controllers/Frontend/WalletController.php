@@ -3,9 +3,6 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\WalletTopUp;
-use App\Models\Transections;
 use App\Models\Admin;
 use App\Models\Ads;
 use App\Models\AdsInvoice;
@@ -13,9 +10,12 @@ use App\Models\ClientTour;
 use App\Models\ClientWallet;
 use App\Models\TopupSetting;
 use App\Models\Tour;
+use App\Models\Transections;
 use App\Models\TransferFunds;
-use Illuminate\Support\Facades\Validator;
+use App\Models\WalletTopUp;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
 class WalletController extends Controller
@@ -28,10 +28,9 @@ class WalletController extends Controller
         $last_transaction_date = $wallet->orderBy('created_at', 'desc')->value('updated_at');
         $sub_wallets = Ads::where('client_id', $auth_id)->latest()->get();
 
-
         if ($request->ajax()) {
             return DataTables::of(ClientWallet::query()->where('client_id', $auth_id)
-            ->where('amount_in', '!=', '')->latest())
+                ->where('amount_in', '!=', '')->latest())
                 ->addIndexColumn()
                 ->addColumn('amount', function ($data) {
                     return get_price($data->amount_in);
@@ -45,14 +44,14 @@ class WalletController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','amount_in'], request()->input('search'));
+                            $search_query->whereLike(['status', 'amount_in'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
 
         // Check if user has run the tour 'start 1'
@@ -96,7 +95,7 @@ class WalletController extends Controller
     }
 
     public function save(Request $request)
-    {  //dd($request->all());
+    {  // dd($request->all());
         if ($request->amount <= 0) {
             return ['error' => 'Please enter an amount greater than 0.'];
         }
@@ -115,7 +114,7 @@ class WalletController extends Controller
         DB::beginTransaction();
 
         try {
-            $wallet = new WalletTopUp();
+            $wallet = new WalletTopUp;
             $msg = [
                 'success' => 'Wallet TopUp Added Successfully',
                 'reload' => true,
@@ -161,7 +160,6 @@ class WalletController extends Controller
                 $add_transaction->save();
             }
 
-
             session()->forget('paynow_transaction_id');
 
             $auth_client = auth('web')->user()->client_name;
@@ -193,7 +191,7 @@ class WalletController extends Controller
             DB::rollback();
 
             // Log or handle the exception as needed
-            return response()->json(['error' => 'Error TopUp: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error TopUp: '.$e->getMessage()], 500);
         }
     }
 
@@ -218,53 +216,57 @@ class WalletController extends Controller
         }
 
         return DataTables::of(collect($wallets_data))
-                ->addIndexColumn()
-                ->addColumn('wallet', function ($data) {
-                    if (isset($data->get_ads)) {
-                        $wallet_name = 'Sub Wallet ('.@$data->get_ads->adds_title.')';
-                    } else {
-                        $wallet_name = 'Main Wallet';
-                    }
-                    return $wallet_name;
-                })
-                ->addColumn('amount_in', function ($data) {
-                    return $data->amount_in != '' ? get_price($data->amount_in) : '-';
-                })
-                ->addColumn('amount_out', function ($data) {
-                    return $data->amount_out != '' ? get_price($data->amount_out) : '-';
-                })
-                ->addColumn('description', function ($data) {
+            ->addIndexColumn()
+            ->addColumn('wallet', function ($data) {
+                if (isset($data->get_ads)) {
+                    $wallet_name = 'Sub Wallet ('.@$data->get_ads->adds_title.')';
+                } else {
+                    $wallet_name = 'Main Wallet';
+                }
 
-                    if ($data->topup_type == 'add_to_subwallet') {
+                return $wallet_name;
+            })
+            ->addColumn('amount_in', function ($data) {
+                return $data->amount_in != '' ? get_price($data->amount_in) : '-';
+            })
+            ->addColumn('amount_out', function ($data) {
+                return $data->amount_out != '' ? get_price($data->amount_out) : '-';
+            })
+            ->addColumn('description', function ($data) {
+
+                if ($data->topup_type == 'add_to_subwallet') {
+                    $ads_name = $data->ads->adds_title;
+
+                    return str_replace('_', ' ', ucfirst($data->topup_type)).' ('.$ads_name.')';
+                } elseif ($data->topup_type == 'closed_subwallet') {
+                    $ads_name = $data->ads->adds_title;
+
+                    return str_replace('_', ' ', ucfirst($data->topup_type)).' ('.$ads_name.')';
+                } else {
+                    if ($data->topup_type == 'back_to_wallet') {
                         $ads_name = $data->ads->adds_title;
-                        return str_replace('_', ' ', ucfirst($data->topup_type)).' ('.$ads_name.')';
-                    } elseif ($data->topup_type == 'closed_subwallet') {
-                        $ads_name = $data->ads->adds_title;
+
                         return str_replace('_', ' ', ucfirst($data->topup_type)).' ('.$ads_name.')';
                     } else {
-                        if ($data->topup_type == 'back_to_wallet') {
-                            $ads_name = $data->ads->adds_title;
-                            return str_replace('_', ' ', ucfirst($data->topup_type)).' ('.$ads_name.')';
-                        } else {
-                            return str_replace('_', ' ', ucfirst($data->topup_type));
-                        }
+                        return str_replace('_', ' ', ucfirst($data->topup_type));
                     }
+                }
 
-                })
-                ->addColumn('status', function ($data) {
-                    return '<span class="badge bg-success">Completed</span> ';
-                })
-                ->addColumn('created_at', function ($data) {
-                    return get_fulltime($data->updated_at);
-                })
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['subaccount_name'], request()->input('search'));
-                        });
-                    }
-                })
-                ->rawColumns(['status'])
+            })
+            ->addColumn('status', function ($data) {
+                return '<span class="badge bg-success">Completed</span> ';
+            })
+            ->addColumn('created_at', function ($data) {
+                return get_fulltime($data->updated_at);
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['subaccount_name'], request()->input('search'));
+                    });
+                }
+            })
+            ->rawColumns(['status'])
             ->make(true);
     }
 
@@ -287,6 +289,7 @@ class WalletController extends Controller
             'sub_wallet_budget' => Ads::where('id', hashids_decode($request->ads_id))->first(),
             'sub_wallet_remaining' => $sub_wallet_remaining,
         ];
+
         return view('client.wallet.transactions', $data);
     }
 
@@ -301,7 +304,7 @@ class WalletController extends Controller
             return ['error' => 'You do not have enough balance to make a new ad request.'];
         }
 
-        $wallet = new ClientWallet();
+        $wallet = new ClientWallet;
         $wallet->client_id = $auth_id;
         $wallet->ads_id = $request->ads_id;
         $wallet->amount_out = $request->topup;
@@ -325,40 +328,42 @@ class WalletController extends Controller
     public function sub_wallets_transactions(Request $request)
     {
         $auth_id = auth('web')->id();
+
         return DataTables::of(Transections::where('client_id', $auth_id)
             ->where('ads_id', $request->ads_id))
-                ->addIndexColumn()
-                ->addColumn('amount_in', function ($data) {
-                    return $data->amount_in != '' ? get_price($data->amount_in) : '-';
-                })
-                ->addColumn('transaction_id', function ($data) {
-                    return '<span title="'.$data->transaction_id.'" style="cursor: pointer;"  onclick="copyToClipboard(\''.htmlspecialchars($data->transaction_id, ENT_QUOTES, 'UTF-8').'\')">'.\Str::limit($data->transaction_id, 20, '...').'</span>';
-                })
-                ->addColumn('description', function ($data) {
-                    return str_replace('_', ' ', ucfirst($data->topup_type));
-                })
-                ->addColumn('amount_out', function ($data) {
-                    return $data->amount_out != '' ? get_price($data->amount_out) : '-';
-                })
-                ->addColumn('created_at', function ($data) {
-                    return get_fulltime($data->created_at);
-                })
-                ->addColumn('status', function ($data) {
-                    return '<span class="badge bg-'.pay_topup_badge($data->status).'">'.ucfirst($data->status).'</span>';
-                })
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['subaccount_name'], request()->input('search'));
-                        });
-                    }
-                })
-                ->orderColumn('DT_RowIndex', function ($q, $o) {
-                    $q->orderBy('id', $o);
-                })
-                ->rawColumns(['transaction_id','status'])
+            ->addIndexColumn()
+            ->addColumn('amount_in', function ($data) {
+                return $data->amount_in != '' ? get_price($data->amount_in) : '-';
+            })
+            ->addColumn('transaction_id', function ($data) {
+                return '<span title="'.$data->transaction_id.'" style="cursor: pointer;"  onclick="copyToClipboard(\''.htmlspecialchars($data->transaction_id, ENT_QUOTES, 'UTF-8').'\')">'.\Str::limit($data->transaction_id, 20, '...').'</span>';
+            })
+            ->addColumn('description', function ($data) {
+                return str_replace('_', ' ', ucfirst($data->topup_type));
+            })
+            ->addColumn('amount_out', function ($data) {
+                return $data->amount_out != '' ? get_price($data->amount_out) : '-';
+            })
+            ->addColumn('created_at', function ($data) {
+                return get_fulltime($data->created_at);
+            })
+            ->addColumn('status', function ($data) {
+                return '<span class="badge bg-'.pay_topup_badge($data->status).'">'.ucfirst($data->status).'</span>';
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['subaccount_name'], request()->input('search'));
+                    });
+                }
+            })
+            ->orderColumn('DT_RowIndex', function ($q, $o) {
+                $q->orderBy('id', $o);
+            })
+            ->rawColumns(['transaction_id', 'status'])
             ->make(true);
     }
+
     public function sub_wallets(Request $request)
     {
         $auth_id = auth('web')->id();
@@ -366,7 +371,7 @@ class WalletController extends Controller
         $data = [
             'breadcrumb' => 'Sub Wallets',
             'title' => 'Sub Wallets',
-            'get_ads' => $get_ads
+            'get_ads' => $get_ads,
         ];
 
         return view('client.wallet.all_wallets')->with($data);
@@ -430,7 +435,7 @@ class WalletController extends Controller
                 return ['error' => 'You do not have enough balance to make a Transfer Funds request.'];
             }
             $ads = Ads::findOrFail($request->to_wallet);
-            $wallet = new ClientWallet();
+            $wallet = new ClientWallet;
             $wallet->client_id = $auth_id;
             $wallet->ads_id = $request->to_wallet;
             $wallet->amount_out = $request->spend_amount;
@@ -445,7 +450,7 @@ class WalletController extends Controller
             $add_transaction->topup_type = 'add_from_main_wallet';
             $add_transaction->status = 'completed';
             $add_transaction->save();
-            
+
             $price = 0;
             if ($ads->domain_is == 'request_to_purchase' && $ads->is_domain_pay == 0) {
                 $price = $price + 20;
@@ -478,8 +483,8 @@ class WalletController extends Controller
             if ($ads->spend_amount < $request->spend_amount) {
                 return ['error' => 'You do not have enough balance to make a Transfer Funds request.'];
             }
- 
-            $wallet = new ClientWallet();
+
+            $wallet = new ClientWallet;
             $wallet->client_id = $auth_id;
             $wallet->ads_id = $request->form_wallet;
             $wallet->amount_in = $request->spend_amount;
@@ -499,7 +504,7 @@ class WalletController extends Controller
             } else {
                 $ad_amt = $ads->daily_budget;
             }
-            
+
             if ($ad_amt > ($ad_amt - $request->spend_amount)) {
                 $ads->payment_status = 0;
             }
@@ -527,7 +532,7 @@ class WalletController extends Controller
             } else {
                 $ad_amt = $form_ad->daily_budget;
             }
-            
+
             if ($ad_amt > ($ad_amt - $request->spend_amount)) {
                 $form_ad->payment_status = 0;
             }
@@ -578,15 +583,13 @@ class WalletController extends Controller
             $to_ad->save();
         }
 
-
-        $trans_funds = new TransferFunds();
+        $trans_funds = new TransferFunds;
         $trans_funds->client_id = $auth_id;
         $trans_funds->amount = $request->spend_amount;
         $trans_funds->from_wallet_id = ($request->form_wallet === 'main_wallet') ? 0 : $request->form_wallet;
         $trans_funds->to_wallet_id = ($request->to_wallet === 'main_wallet') ? 0 : $request->to_wallet;
         $trans_funds->status = 'approved';
         $trans_funds->save();
-
 
         $msg = [
             'success' => 'Funds add Successfully',
@@ -605,73 +608,71 @@ class WalletController extends Controller
         }
 
         return response()->json($msg);
-        die();
+        exit();
     }
-
 
     public function view_fund_transections()
     {
         $auth_id = auth('web')->id();
-        return DataTables::of(TransferFunds::with(['to_wallet', 'form_wallet'])->where('client_id', $auth_id)->latest())
-                ->addIndexColumn()
-                ->addColumn('date', function ($data) {
-                    return get_fulltime($data->created_at);
-                })
-                ->addColumn('from_wallet_id', function ($data) {
-                    if (empty($data->form_wallet)) {
-                        return 'Main Wallet';
-                    } else {
-                        return ucfirst($data->form_wallet->adds_title);
-                    }
-                })
-                ->addColumn('to_wallet_id', function ($data) {
-                    if (empty($data->to_wallet)) {
-                        return 'Main Wallet';
-                    } else {
-                        return ucfirst($data->to_wallet->adds_title);
-                    }
-                   
-                })
-                ->addColumn('amount', function ($data) {
-                    return get_price($data->amount);
-                })
-                ->addColumn('status', function ($data) {
-                    return $data->status;
-                })
 
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','amount'], request()->input('search'));
-                        });
-                    }
-                })
-                ->orderColumn('DT_RowIndex', function ($q, $o) {
-                    $q->orderBy('id', $o);
-                })
+        return DataTables::of(TransferFunds::with(['to_wallet', 'form_wallet'])->where('client_id', $auth_id)->latest())
+            ->addIndexColumn()
+            ->addColumn('date', function ($data) {
+                return get_fulltime($data->created_at);
+            })
+            ->addColumn('from_wallet_id', function ($data) {
+                if (empty($data->form_wallet)) {
+                    return 'Main Wallet';
+                } else {
+                    return ucfirst($data->form_wallet->adds_title);
+                }
+            })
+            ->addColumn('to_wallet_id', function ($data) {
+                if (empty($data->to_wallet)) {
+                    return 'Main Wallet';
+                } else {
+                    return ucfirst($data->to_wallet->adds_title);
+                }
+
+            })
+            ->addColumn('amount', function ($data) {
+                return get_price($data->amount);
+            })
+            ->addColumn('status', function ($data) {
+                return $data->status;
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['status', 'amount'], request()->input('search'));
+                    });
+                }
+            })
+            ->orderColumn('DT_RowIndex', function ($q, $o) {
+                $q->orderBy('id', $o);
+            })
             ->make(true);
     }
-
 
     public function transaction_report(Request $request)
     {
         $auth_id = auth('web')->id();
         $wallet_transactions = ClientWallet::where('client_id', $auth_id)
-        ->whereIn('topup_type', ['stripe', 'paynow'])
-        ->orderBy('created_at', 'desc')
-        ->get();
+            ->whereIn('topup_type', ['stripe', 'paynow'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $ads_transactions = Transections::with('get_ads')->where('client_id', $auth_id)
-        ->whereIn('topup_type', ['stripe', 'paynow'])
-        ->orderBy('created_at', 'desc')
-        ->get();
+            ->whereIn('topup_type', ['stripe', 'paynow'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $merged_transactions = $wallet_transactions->concat($ads_transactions);
         $final_array = $merged_transactions->sortByDesc('created_at')->values()->all();
 
         if ($request->ajax()) {
             return DataTables::of(ClientWallet::query()->where('client_id', $auth_id)
-            ->where('amount_in', '!=', '')->latest())
+                ->where('amount_in', '!=', '')->latest())
                 ->addIndexColumn()
                 ->addColumn('amount', function ($data) {
                     return get_price($data->amount_in);
@@ -685,14 +686,14 @@ class WalletController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','amount_in'], request()->input('search'));
+                            $search_query->whereLike(['status', 'amount_in'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
 
         // Check if user has run the tour 'start 3'
@@ -718,6 +719,7 @@ class WalletController extends Controller
             'tour' => $tour ?? null,
             'client_tour' => $client_tour ?? null,
         ];
+
         return view('client.wallet.transaction_report', $data);
     }
 
@@ -725,6 +727,7 @@ class WalletController extends Controller
     {
         $transactionId = strtotime(now());
         session(['paynow_transaction_id' => $transactionId]);
+
         return $transactionId;
     }
 
@@ -732,9 +735,8 @@ class WalletController extends Controller
     {
         $id = $request->input('id');
         $ads_delete = Ads::findOrFail($id);
-       
 
-        $wallet = new ClientWallet();
+        $wallet = new ClientWallet;
         $wallet->client_id = $ads_delete->client_id;
         $wallet->ads_id = $ads_delete->id;
         $wallet->amount_in = $ads_delete->spend_amount;
@@ -744,7 +746,7 @@ class WalletController extends Controller
 
         // Monthly payment
         $monthly_payment = $this->monthly_client_payment($ads_delete->client_id, $ads_delete->id);
-        
+
         // Fetch 1 Topups of client that FeeFlag = False
         $topupFee = 0;
 
@@ -753,7 +755,7 @@ class WalletController extends Controller
             ->whereIn('topup_type', ['stripe'])
             ->where('status', 'completed')
             ->get();
-    
+
         // Check sub wallet
         if ($topups->isEmpty()) {
             // Change to main wallet
@@ -783,7 +785,7 @@ class WalletController extends Controller
         }
 
         $totalAmount = $monthly_payment + $topupFee;
-        
+
         if ($totalAmount <= 0) {
             return response()->json([
                 'success' => 'Ads close Successfully',
@@ -803,7 +805,7 @@ class WalletController extends Controller
         $available_balance = $remaining_amount - $totalAmount;
 
         $gst = (($totalAmount - $topupFee) * (9 / 100));
-        
+
         $add_transaction = new Transections;
         $add_transaction->client_id = $ads_delete->client_id;
         $add_transaction->amount_out = $ads_delete->spend_amount;
@@ -811,7 +813,7 @@ class WalletController extends Controller
         $add_transaction->topup_type = 'closed_and_back_to_main_wallet';
         $add_transaction->status = 'completed';
         $add_transaction->save();
-    
+
         $ads_delete->spend_amount = $available_balance;
         $ads_delete->save();
 
@@ -820,7 +822,7 @@ class WalletController extends Controller
             $topup->fee_flag = true;
             $topup->save();
         }
-        
+
         // Generate Invoice
         $dates = $this->monthly_user_start_end_time($ads_delete->client_id, $ads_delete->id, 'ppc');
         $monthStartDate = $dates['start_date']->format('Y-m-d');

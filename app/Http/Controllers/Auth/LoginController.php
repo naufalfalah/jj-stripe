@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\ClientTour;
 use App\Models\Tour;
-use App\Models\User;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
@@ -53,7 +51,7 @@ class LoginController extends Controller
     {
         $a = $this->validate($request, [
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
         if (!Auth::guard('web')->attempt(['email' => $request->email, 'password' => $request->password], $request->remember)) {
             return redirect()->back()->withInput()->withErrors(['email' => 'These credentials do not match our records.']);
@@ -64,11 +62,11 @@ class LoginController extends Controller
         if (is_null($user->email_verified_at)) {
             auth('web')->logout();
             $route = 'auth.resend_email';
+
             return redirect()->back()->withInput()->withErrors([
-                'email' => 'Your email is not verified yet! Please first verify your email address. <a href="' . route('auth.resend_email', $user->hashid) . '">Resend Email</a>'
+                'email' => 'Your email is not verified yet! Please first verify your email address. <a href="'.route('auth.resend_email', $user->hashid).'">Resend Email</a>',
             ]);
         }
-
 
         $route = 'user.dashboard';
 
@@ -82,31 +80,31 @@ class LoginController extends Controller
             if (!$client_tour) {
                 $route = 'user.ads.all';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'FINISH_1'], ['name' => 'Finish']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.wallet.transfer_funds';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'AFTER_TOPUP'], ['name' => 'After Topup']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.wallet.transaction_report';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'START_3'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.wallet.add';
             }
-            
+
             $tour = Tour::firstOrCreate(['code' => 'START_2'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {
                 $route = 'user.ads.add';
             }
-    
+
             $tour = Tour::firstOrCreate(['code' => 'START_1'], ['name' => 'Get Started']);
             $client_tour = ClientTour::where(['client_id' => auth('web')->user()->id, 'tour_id' => $tour->id])->first();
             if (!$client_tour) {

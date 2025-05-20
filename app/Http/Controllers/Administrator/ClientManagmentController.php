@@ -4,30 +4,30 @@ namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Agency;
-use App\Models\Industry;
-use App\Models\Transections;
-use App\Models\WalletTopUp;
 use App\Models\Ads;
+use App\Models\Agency;
 use App\Models\ClientFolder;
 use App\Models\GoogleAccount;
 use App\Models\GoogleAd;
 use App\Models\GoogleAdsConversionAction;
+use App\Models\Industry;
 use App\Models\LeadClient;
 use App\Models\Package;
+use App\Models\Transections;
+use App\Models\User;
 use App\Models\UserSubAccount;
+use App\Models\WalletTopUp;
 use App\Services\GoogleAdsService;
+use App\Traits\GoogleTrait;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Carbon;
-use App\Traits\GoogleTrait;
-use Illuminate\Support\Facades\Log;
+use Yajra\DataTables\Facades\DataTables;
 
 class ClientManagmentController extends Controller
 {
@@ -50,14 +50,14 @@ class ClientManagmentController extends Controller
                     ->get(),
                 'sub_account_id' => session()->get('sub_account_id'),
             ];
+
             return view('admin.client_management.clients.all_clients')->with(
                 $data
             );
         } else {
             return response()->json(
                 [
-                    'error' =>
-                        'You do not have permission to access this resource.',
+                    'error' => 'You do not have permission to access this resource.',
                 ],
                 403
             );
@@ -76,6 +76,7 @@ class ClientManagmentController extends Controller
                             'id' => $request->user_id,
                         ]
                     );
+
                     return response()->json(['redirect_url' => $url]);
                 }
             }
@@ -97,6 +98,7 @@ class ClientManagmentController extends Controller
                 'sub_account_id' => session()->get('sub_account_id'),
                 'packages' => Package::all(),
             ];
+
             return view('admin.client_management.clients.import_clients', $data);
         }
         if (Auth::user('admin')->role_name === 'ISA Team') {
@@ -106,6 +108,7 @@ class ClientManagmentController extends Controller
                 'title' => 'All Clients',
                 'all_clients' => User::whereNotNull('email_verified_at')->latest()->get(),
             ];
+
             return view('admin.client_management.all_clients')->with($data);
         }
     }
@@ -115,7 +118,7 @@ class ClientManagmentController extends Controller
         if (Auth::user('admin')->can('user-add') == true) {
             $customers = [];
             if (Auth::user('admin')->google_access_token) {
-                $googleAdsService = new GoogleAdsService();
+                $googleAdsService = new GoogleAdsService;
                 $getCustomers = $googleAdsService->getCustomers();
                 foreach ($getCustomers['resourceNames'] as $customer) {
                     $customerId = removePrefix($customer);
@@ -141,14 +144,14 @@ class ClientManagmentController extends Controller
                 'customers' => $customers,
                 'packages' => Package::all(),
             ];
+
             return view('admin.client_management.clients.add_client')->with(
                 $data
             );
         } else {
             return response()->json(
                 [
-                    'error' =>
-                        'You do not have permission to access this resource.',
+                    'error' => 'You do not have permission to access this resource.',
                 ],
                 403
             );
@@ -240,9 +243,8 @@ class ClientManagmentController extends Controller
         $rules = [
             'client_name' => 'required|string',
             'phone_number' => 'required|numeric',
-            'email' =>
-                'required|email|unique:users,email,' .
-                ($userId ?? 'NULL') .
+            'email' => 'required|email|unique:users,email,'.
+                ($userId ?? 'NULL').
                 ',id,deleted_at,NULL',
             'agency_id' => 'required|integer',
             'package' => 'required|string',
@@ -263,7 +265,7 @@ class ClientManagmentController extends Controller
             $user = User::findOrFail($userId);
             $message = 'User updated successfully';
         } else {
-            $user = new User();
+            $user = new User;
             $message = 'User created successfully';
         }
 
@@ -384,7 +386,7 @@ class ClientManagmentController extends Controller
 
         $customers = [];
         if (Auth::user('admin')->google_access_token) {
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             $getCustomers = $googleAdsService->getCustomers();
             foreach ($getCustomers['resourceNames'] as $customer) {
                 $customerId = removePrefix($customer);
@@ -429,6 +431,7 @@ class ClientManagmentController extends Controller
     public function delete($sub_account_id, $id)
     {
         $client = User::findOrFail(hashids_decode($id))->delete();
+
         return response()->json([
             'success' => 'Client deleted successfully',
             'remove_tr' => true,
@@ -489,12 +492,12 @@ class ClientManagmentController extends Controller
                     ->get(),
                 'sub_account_id' => session()->get('sub_account_id'),
             ];
+
             return view('admin.client_management.TopUp.all_topup')->with($data);
         } else {
             return response()->json(
                 [
-                    'error' =>
-                        'You do not have permission to access this resource.',
+                    'error' => 'You do not have permission to access this resource.',
                 ],
                 403
             );
@@ -529,7 +532,7 @@ class ClientManagmentController extends Controller
         }
 
         $topup = empty($request->id)
-            ? new WalletTopUp()
+            ? new WalletTopUp
             : WalletTopUp::findOrFail(hashids_decode($request->id));
 
         $topup->client_id = $request->client_id;
@@ -563,7 +566,7 @@ class ClientManagmentController extends Controller
         $remaining_amount =
             $trans->sum('amount_in') - $trans->sum('amount_out');
 
-        $transection = new Transections();
+        $transection = new Transections;
         $transection->client_id = $topup->client_id;
         $transection->amount_in = $topup->topup_amount;
         $transection->available_balance =
@@ -619,6 +622,7 @@ class ClientManagmentController extends Controller
 
         $delete = WalletTopUp::find($id);
         $delete->delete();
+
         return response()->json([
             'success' => 'Record Delete Successfully',
             'redirect' => route('admin.sub_account.client-management.Top_Up', [
@@ -640,6 +644,7 @@ class ClientManagmentController extends Controller
                 ->whereIn('client_id', $sub_account_ids)
                 ->latest()
                 ->get();
+
             return DataTables::of($ads)
                 ->addIndexColumn()
                 ->addColumn(
@@ -742,8 +747,7 @@ class ClientManagmentController extends Controller
         if ($remaining_amount <= 50) {
             return response()->json(
                 [
-                    'error' =>
-                        'You do not have enough balance to make a new ad request.',
+                    'error' => 'You do not have enough balance to make a new ad request.',
                 ],
                 402
             );
@@ -765,7 +769,7 @@ class ClientManagmentController extends Controller
         try {
             $ads_add = $request->id
                 ? Ads::findOrFail(hashids_decode($request->id))
-                : new Ads();
+                : new Ads;
             $msg = $request->id
                 ? 'Ads Updated Successfully'
                 : 'Ads Added Successfully';
@@ -797,7 +801,7 @@ class ClientManagmentController extends Controller
             // Log or handle the exception as needed
             return response()->json(
                 [
-                    'error' => 'Error lead: ' . $e->getMessage(),
+                    'error' => 'Error lead: '.$e->getMessage(),
                 ],
                 500
             );
@@ -894,7 +898,7 @@ class ClientManagmentController extends Controller
         $campaign = [];
 
         if (Auth::user('admin')->google_access_token) {
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             $campaign = $googleAdsService->getCampaignByResourceName(
                 $customerId,
                 $campaignResourceName
@@ -942,7 +946,7 @@ class ClientManagmentController extends Controller
                 (int) $request->campaign_budget_amount * 1000000;
 
             // Update Google Ads campaign
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             $googleAdsService->updateCampaign(
                 $customerId,
                 $campaignResourceName,
@@ -974,10 +978,11 @@ class ClientManagmentController extends Controller
                 ->back()
                 ->with('success', 'Google ads campaign updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Failed to update campaign: ' . $e->getMessage());
+            Log::error('Failed to update campaign: '.$e->getMessage());
+
             return redirect()
                 ->back()
-                ->with('error', 'An error occurred: ' . $e->getMessage())
+                ->with('error', 'An error occurred: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -1016,7 +1021,7 @@ class ClientManagmentController extends Controller
         $adGroup = [];
 
         if (Auth::user('admin')->google_access_token) {
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             $adGroup = $googleAdsService->getAdGroupByResourceName(
                 $customerId,
                 $adGroupResourceName
@@ -1114,8 +1119,7 @@ class ClientManagmentController extends Controller
                 'campaign_budget_type' => 'required|in:LIFETIME,DAILY',
                 'campaign_budget_amount' => 'required|numeric|min:1',
                 'campaign_start_date' => 'nullable|date',
-                'campaign_end_date' =>
-                    'nullable|date|after_or_equal:campaign_start_date',
+                'campaign_end_date' => 'nullable|date|after_or_equal:campaign_start_date',
 
                 'keywords' => 'required|string',
 
@@ -1193,6 +1197,7 @@ class ClientManagmentController extends Controller
                 } else {
                     $keyword = trim($keyword);
                 }
+
                 return [
                     'text' => $keyword,
                     'match_type' => $match_type,
@@ -1344,8 +1349,7 @@ class ClientManagmentController extends Controller
                 'campaign_name' => $request->campaign_name,
                 'campaign_type' => $request->campaign_type,
                 'campaign_budget_type' => $request->campaign_budget_type,
-                'campaign_budget_amount' =>
-                    $requestBody['campaign_budget_amount'],
+                'campaign_budget_amount' => $requestBody['campaign_budget_amount'],
                 'campaign_target_url' => $request->campaign_target_url ?? '',
                 'campaign_start_date' => $startDate,
                 'campaign_end_date' => $endDate,
@@ -1376,10 +1380,11 @@ class ClientManagmentController extends Controller
                 ->back()
                 ->with('success', 'Google ads created successfully.');
         } catch (\Exception $e) {
-            Log::error('Failed to Google ad: ' . $e->getMessage());
+            Log::error('Failed to Google ad: '.$e->getMessage());
+
             return redirect()
                 ->back()
-                ->with('error', 'An error occurred: ' . $e->getMessage())
+                ->with('error', 'An error occurred: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -1418,7 +1423,7 @@ class ClientManagmentController extends Controller
                     ->with('error', 'Google Ad already exist.');
             }
 
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             $googleAd = $googleAdsService->getAdByResourceName(
                 $customerId,
                 $campaignResourceName
@@ -1430,37 +1435,30 @@ class ClientManagmentController extends Controller
                 'campaign_budget_resource_name' => null,
 
                 'campaign_name' => $googleAd['campaign']['name'] ?? null,
-                'campaign_type' =>
-                    $googleAd['campaign']['advertisingChannelType'] ?? null,
+                'campaign_type' => $googleAd['campaign']['advertisingChannelType'] ?? null,
                 'campaign_budget_type' => null,
                 'campaign_budget_amount' => null,
                 'campaign_target_url' => null,
-                'campaign_start_date' =>
-                    $googleAd['campaign']['startDate'] ?? null,
+                'campaign_start_date' => $googleAd['campaign']['startDate'] ?? null,
                 'campaign_end_date' => $googleAd['campaign']['endDate'] ?? null,
-                'campaign_resource_name' =>
-                    $googleAd['campaign']['resourceName'] ?? null,
+                'campaign_resource_name' => $googleAd['campaign']['resourceName'] ?? null,
 
                 'locations' => null,
                 'languages' => null,
 
                 'ad_group_name' => $googleAd['adGroup']['name'] ?? null,
-                'ad_group_bid_amount' =>
-                    $adGroup['adGroup']['cpcBidMicros'] ?? null,
-                'ad_group_resource_name' =>
-                    $adGroup['adGroup']['resourceName'] ?? null,
+                'ad_group_bid_amount' => $adGroup['adGroup']['cpcBidMicros'] ?? null,
+                'ad_group_resource_name' => $adGroup['adGroup']['resourceName'] ?? null,
 
                 'keywords' => null,
                 'keyword_match_types' => null,
 
                 'ad_name' => 'Imported Ad',
-                'ad_final_url' =>
-                    $googleAd['adGroupAd']['ad']['finalUrls'][0] ?? null,
+                'ad_final_url' => $googleAd['adGroupAd']['ad']['finalUrls'][0] ?? null,
                 'ad_headlines' => null,
                 'ad_descriptions' => null,
                 'ad_sitelinks' => null,
-                'ad_resource_name' =>
-                    $googleAd['adGroupAd']['resourceName'] ?? null,
+                'ad_resource_name' => $googleAd['adGroupAd']['resourceName'] ?? null,
 
                 'google_account_id' => $googleAccountId,
                 'customer_id' => $customerId,
@@ -1470,10 +1468,11 @@ class ClientManagmentController extends Controller
                 ->back()
                 ->with('success', 'Google ads synced successfully.');
         } catch (\Exception $e) {
-            Log::error('Failed to Google ad: ' . $e->getMessage());
+            Log::error('Failed to Google ad: '.$e->getMessage());
+
             return redirect()
                 ->back()
-                ->with('error', 'An error occurred: ' . $e->getMessage())
+                ->with('error', 'An error occurred: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -1581,7 +1580,7 @@ class ClientManagmentController extends Controller
             $customerId = $client->customer_id;
 
             // Initiate google ads service
-            $googleAdsService = new GoogleAdsService();
+            $googleAdsService = new GoogleAdsService;
             // Create conversion action
             $createConversionAction = $googleAdsService->createConversionAction(
                 $customerId,
@@ -1604,12 +1603,9 @@ class ClientManagmentController extends Controller
                     'category' => $requestBody['category'][$i],
                     'website_url' => $requestBody['website_url'][$i],
                     'counting_type' => $requestBody['counting_type'][$i],
-                    'click_through_days' =>
-                        $requestBody['click_through_days'][$i],
-                    'view_through_days' =>
-                        $requestBody['view_through_days'][$i],
-                    'resource_name' =>
-                        $createConversionAction['results'][$i]['resourceName'],
+                    'click_through_days' => $requestBody['click_through_days'][$i],
+                    'view_through_days' => $requestBody['view_through_days'][$i],
+                    'resource_name' => $createConversionAction['results'][$i]['resourceName'],
                     'customer_id' => $customerId,
                 ]);
             }
@@ -1629,11 +1625,12 @@ class ClientManagmentController extends Controller
                 ->with('conversionActionId', $conversionActionId);
         } catch (\Exception $e) {
             Log::error(
-                'Failed to create conversion action: ' . $e->getMessage()
+                'Failed to create conversion action: '.$e->getMessage()
             );
+
             return redirect()
                 ->back()
-                ->with('error', 'An error occurred: ' . $e->getMessage())
+                ->with('error', 'An error occurred: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -1648,6 +1645,7 @@ class ClientManagmentController extends Controller
                 })
                 ->addColumn('type', function ($data) {
                     $types = explode(',', $data->type);
+
                     return Str::limit(ads_type_text($types), 30, '...');
                 })
                 ->addColumn('status', function ($data) {
@@ -1662,14 +1660,14 @@ class ClientManagmentController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['adds_title','type'], request()->input('search'));
+                            $search_query->whereLike(['adds_title', 'type'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -1693,14 +1691,14 @@ class ClientManagmentController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','topup_amount'], request()->input('search'));
+                            $search_query->whereLike(['status', 'topup_amount'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -1733,14 +1731,14 @@ class ClientManagmentController extends Controller
                 ->filter(function ($query) {
                     if (request()->input('search')) {
                         $query->where(function ($search_query) {
-                            $search_query->whereLike(['available_balance','amount_in', 'amount_out'], request()->input('search'));
+                            $search_query->whereLike(['available_balance', 'amount_in', 'amount_out'], request()->input('search'));
                         });
                     }
                 })
                 ->orderColumn('DT_RowIndex', function ($q, $o) {
                     $q->orderBy('id', $o);
                 })
-            ->make(true);
+                ->make(true);
         }
     }
 
@@ -1763,6 +1761,7 @@ class ClientManagmentController extends Controller
                     ->addColumn('latest_activity', function ($data) {
                         if ($data->activity()->count() > 0) {
                             $last = ($data->activity()->count() - 1);
+
                             return $data->activity[$last]->created_at->diffForHumans();
                         } else {
                             return '-';

@@ -12,26 +12,19 @@ use Illuminate\Support\Facades\Session;
 
 class YouTubeAccountController extends Controller
 {
-    /**
-     * @return RedirectResponse
-     */
     public function redirectToProvider(): RedirectResponse
     {
-        $youtubeService = new YouTubeService();
+        $youtubeService = new YouTubeService;
         $url = $youtubeService->getRedirectUrl();
+
         return redirect()->away($url);
     }
 
-    /**
-     * @param Request $request
-     *
-     * @return RedirectResponse
-     */
     public function handleProviderCallback(Request $request): RedirectResponse
     {
         $code = $request->input('code');
 
-        $youtubeService = new YouTubeService();
+        $youtubeService = new YouTubeService;
         $authorization = $youtubeService->getAccessToken($code);
 
         if (Session::has('client_id')) {
@@ -62,7 +55,6 @@ class YouTubeAccountController extends Controller
 
     /**
      * @param string $authorization
-     *
      * @return bool
      */
     public function storeUserSocialMedia($authorization)

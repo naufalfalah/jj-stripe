@@ -2,36 +2,28 @@
 
 namespace App\Http\Controllers\Frontend;
 
-use App\Constants\NotificationConstant;
 use App\Constants\LeadConstant;
+use App\Constants\NotificationConstant;
 use App\Http\Controllers\Controller;
+use App\Models\Ads;
 use App\Models\Agency;
 use App\Models\ClientLeadFilter;
-use App\Models\LeadClient;
-use App\Models\User;
-use App\Models\Ads;
-use App\Models\Industry;
-use Illuminate\Http\Request;
-use App\Models\DailyAdsSpent;
-use App\Models\Notification;
-use App\Models\UserDeviceToken;
-use App\Models\Transections;
-use App\Models\AdsInvoice;
-use App\Models\ClientTour;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
-use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\DB;
-use App\Models\TaxCharge;
-use App\Models\WalletTopUp;
 use App\Models\ClientWallet;
+use App\Models\Industry;
+use App\Models\LeadClient;
+use App\Models\Notification;
 use App\Models\Package;
-use App\Models\Tour;
+use App\Models\User;
+use App\Models\UserDeviceToken;
 use App\Models\UserNotification;
 use App\Models\UserSubAccount;
 use App\Traits\AdsSpentTrait;
-use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Yajra\DataTables\Facades\DataTables;
 
 class DashboardController extends Controller
 {
@@ -70,6 +62,7 @@ class DashboardController extends Controller
             'projects' => UserSubAccount::latest()->paginate(5),
             'valuations' => UserSubAccount::latest()->paginate(5),
         ];
+
         return view('client.dashboard')->with($data);
     }
 
@@ -88,78 +81,76 @@ class DashboardController extends Controller
             $client_leads = LeadClient::with('lead_data', 'clients', 'ads')->where('client_id', $auth_id)->where('ads_id', hashids_decode($request->ads_id))->where('lead_type', 'ppc')->latest()->take(100)->get();
         }
 
-
         return DataTables::of($client_leads)
-                ->addIndexColumn()
-                ->addColumn('client_name', function ($lead) {
-                    return $lead->clients->client_name ?? '-';
-                })
-                ->addColumn('ads_name', function ($lead) {
-                    return $lead->ads->adds_title ?? '-';
-                })
-                ->addColumn('name', function ($lead) {
-                    return $lead->name ?? '-';
-                })
-                ->addColumn('email', function ($lead) {
-                    return $lead->email ?? '-';
-                })
-                ->addColumn('mobile_number', function ($lead) {
-                    return $lead->mobile_number ?? '-';
-                })
-                ->addColumn('lead_data', function ($lead) {
-                    return $lead->lead_data->map(function ($item) {
-                        $key = Str::limit($item->key, 10);
-                        $value = Str::limit($item->value, 10);
-                        return "<span>$key: $value</span>";
-                    })->implode('<br>');
+            ->addIndexColumn()
+            ->addColumn('client_name', function ($lead) {
+                return $lead->clients->client_name ?? '-';
+            })
+            ->addColumn('ads_name', function ($lead) {
+                return $lead->ads->adds_title ?? '-';
+            })
+            ->addColumn('name', function ($lead) {
+                return $lead->name ?? '-';
+            })
+            ->addColumn('email', function ($lead) {
+                return $lead->email ?? '-';
+            })
+            ->addColumn('mobile_number', function ($lead) {
+                return $lead->mobile_number ?? '-';
+            })
+            ->addColumn('lead_data', function ($lead) {
+                return $lead->lead_data->map(function ($item) {
+                    $key = Str::limit($item->key, 10);
+                    $value = Str::limit($item->value, 10);
 
-                })
+                    return "<span>$key: $value</span>";
+                })->implode('<br>');
 
-                ->addColumn('actions', function ($lead) {
-                    $data = json_encode([
-                        'name' => $lead->name,
-                        'email' => $lead->email,
-                        'mobile_number' => $lead->mobile_number,
-                        'admin_status' => $lead->admin_status,
-                        'lead_data' => $lead->lead_data
-                    ]);
-                    $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
+            })
+            ->addColumn('actions', function ($lead) {
+                $data = json_encode([
+                    'name' => $lead->name,
+                    'email' => $lead->email,
+                    'mobile_number' => $lead->mobile_number,
+                    'admin_status' => $lead->admin_status,
+                    'lead_data' => $lead->lead_data,
+                ]);
+                $actionsHtml = "<a href='javascript:void(0)' class='text-primary view_lead_detail_id'  data-data='{$data}' data-id='{$lead->id}' title='View Lead Detail'><i class='bi bi-eye-fill'></i></a>
                     ";
 
-                    if ($lead->user_status == 'agent') {
-                        $agent_detail = AgentDetail::where('registration_no', $lead->registration_no)->first();
-                        $agentdata = json_encode([
-                            'salesperson_name' => $agent_detail->salesperson_name ?? '-',
-                            'registration_no' => $agent_detail->registration_no ?? '-',
-                            'registration_start_date' => $agent_detail->registration_start_date ?? '-',
-                            'registration_end_date' => $agent_detail->registration_end_date ?? '-',
-                            'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
-                            'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-'
-                        ]);
-                        $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
-                    }
+                if ($lead->user_status == 'agent') {
+                    $agent_detail = AgentDetail::where('registration_no', $lead->registration_no)->first();
+                    $agentdata = json_encode([
+                        'salesperson_name' => $agent_detail->salesperson_name ?? '-',
+                        'registration_no' => $agent_detail->registration_no ?? '-',
+                        'registration_start_date' => $agent_detail->registration_start_date ?? '-',
+                        'registration_end_date' => $agent_detail->registration_end_date ?? '-',
+                        'estate_agent_name' => $agent_detail->estate_agent_name ?? '-',
+                        'estate_agent_license_no' => $agent_detail->estate_agent_license_no ?? '-',
+                    ]);
+                    $actionsHtml .= "&nbsp;&nbsp <a href='javascript:void(0)' class='text-success agent_specific_action' data-data='{$agentdata}' data-registration='{$lead->registration_no}' data-id='{$lead->id}' title='Agent Specific Action'><i class='bi bi-info-circle-fill'></i></a>";
+                }
 
-                    return $actionsHtml;
-                })
+                return $actionsHtml;
+            })
+            ->addColumn('admin_status', function ($lead) use ($enum_values) {
+                $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="'.$lead->id.'">';
+                foreach ($enum_values as $value) {
+                    $selected = $lead->admin_status == $value ? 'selected' : '';
+                    $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
+                }
+                $dropdown .= '</select>';
 
-
-              ->addColumn('admin_status', function ($lead) use ($enum_values) {
-                  $dropdown = '<select class="admin-status-dropdown form-select" name="admin_status" data-id="' . $lead->id . '">';
-                  foreach ($enum_values as $value) {
-                      $selected = $lead->admin_status == $value ? 'selected' : '';
-                      $dropdown .= "<option value='{$value}' {$selected}>{$value}</option>";
-                  }
-                  $dropdown .= '</select>';
-                  return $dropdown;
-              })
-                ->filter(function ($query) {
-                    if (request()->input('search')) {
-                        $query->where(function ($search_query) {
-                            $search_query->whereLike(['status','topup_amount'], request()->input('search'));
-                        });
-                    }
-                })
-                ->rawColumns(['actions','lead_data','admin_status'])
+                return $dropdown;
+            })
+            ->filter(function ($query) {
+                if (request()->input('search')) {
+                    $query->where(function ($search_query) {
+                        $search_query->whereLike(['status', 'topup_amount'], request()->input('search'));
+                    });
+                }
+            })
+            ->rawColumns(['actions', 'lead_data', 'admin_status'])
             ->make(true);
     }
 
@@ -184,6 +175,7 @@ class DashboardController extends Controller
             'leadFilter' => LeadConstant::FILTERS,
             'clientLeadFilter' => explode(',', $clientLeadFilter->lead_filters),
         ];
+
         return view('client.profile')->with($data);
     }
 
@@ -255,9 +247,10 @@ class DashboardController extends Controller
                 'reload' => true,
             ];
             DB::commit();
+
             return response()->json($msg);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Update Profile: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Update Profile: '.$e->getMessage()], 500);
         }
     }
 
@@ -292,6 +285,7 @@ class DashboardController extends Controller
                 'reload' => true,
             ];
         }
+
         return response()->json($msg);
     }
 
@@ -308,7 +302,7 @@ class DashboardController extends Controller
             return ['errors' => $validator->errors()];
         }
 
-        UserDeviceToken::firstOrCreate(['user_id' => auth('web')->user()->id,'device_token' => $request->device_token]);
+        UserDeviceToken::firstOrCreate(['user_id' => auth('web')->user()->id, 'device_token' => $request->device_token]);
 
         return response()->json(true);
     }
@@ -320,9 +314,10 @@ class DashboardController extends Controller
             ->where('user_type', 'user')
             ->latest()->limit(100);
         $unread = Notification::where('user_id', auth('web')->id())->where('user_type', 'user')->where('is_read', 0)->count();
+
         return response()->json([
             'count' => $unread,
-            'view_data' => view('components.include.notification_list', ['notifications' => $notifications->get()])->render()
+            'view_data' => view('components.include.notification_list', ['notifications' => $notifications->get()])->render(),
         ]);
     }
 
@@ -331,6 +326,7 @@ class DashboardController extends Controller
         Notification::where('user_id', auth('web')->id())
             ->where('user_type', 'user')
             ->update(['is_read' => 1]);
+
         return response()->json(true);
     }
 
@@ -340,13 +336,13 @@ class DashboardController extends Controller
         $userNotification = UserNotification::firstOrCreate([
             'client_id' => $userId,
         ]);
-        
+
         $types = $request->types ?? [];
         $notificationTypes = NotificationConstant::getTypes();
 
         $invalidTypes = array_diff($types, $notificationTypes);
         if (!empty($invalidTypes)) {
-            return $this->sendErrorResponse('Invalid notification types: ' . implode(', ', $invalidTypes));
+            return $this->sendErrorResponse('Invalid notification types: '.implode(', ', $invalidTypes));
         }
 
         UserNotification::updateOrCreate(
@@ -357,7 +353,7 @@ class DashboardController extends Controller
                 'notification_types' => implode(',', $types),
             ],
         );
-        
+
         return response()->json([
             'success' => 'User Notification Updated Successfully',
             'redirect' => route('user.profile.edit'),
@@ -370,13 +366,13 @@ class DashboardController extends Controller
         $clientLeadFilter = ClientLeadFilter::firstOrCreate([
             'client_id' => $userId,
         ]);
-        
+
         $filters = $request->filters ?? [];
         $leadFilters = LeadConstant::getFilters();
 
         $invalidFilters = array_diff($filters, $leadFilters);
         if (!empty($invalidFilters)) {
-            return $this->sendErrorResponse('Invalid lead filters: ' . implode(', ', $invalidFilters));
+            return $this->sendErrorResponse('Invalid lead filters: '.implode(', ', $invalidFilters));
         }
 
         ClientLeadFilter::updateOrCreate(
@@ -387,7 +383,7 @@ class DashboardController extends Controller
                 'lead_filters' => implode(',', $filters),
             ],
         );
-        
+
         return response()->json([
             'success' => 'Client Lead Filter Updated Successfully',
             'redirect' => route('user.profile.edit'),
