@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use Google\Cloud\TextToSpeech\V1\TextToSpeechClient;
-use Google\Cloud\TextToSpeech\V1\SynthesisInput;
-use Google\Cloud\TextToSpeech\V1\VoiceSelectionParams;
 use Google\Cloud\TextToSpeech\V1\AudioConfig;
 use Google\Cloud\TextToSpeech\V1\AudioEncoding;
+use Google\Cloud\TextToSpeech\V1\SynthesisInput;
+use Google\Cloud\TextToSpeech\V1\TextToSpeechClient;
+use Google\Cloud\TextToSpeech\V1\VoiceSelectionParams;
 use Illuminate\Support\Facades\Storage;
 
 class GoogleTextToSpeechService
@@ -17,14 +17,14 @@ class GoogleTextToSpeechService
             'credentials' => base_path(config('services.google.credentials')),
         ]);
 
-        $input = new SynthesisInput();
+        $input = new SynthesisInput;
         $input->setText($text);
 
-        $voice = new VoiceSelectionParams();
+        $voice = new VoiceSelectionParams;
         $voice->setLanguageCode($languageCode);
         $voice->setName($voiceName);
 
-        $audioConfig = new AudioConfig();
+        $audioConfig = new AudioConfig;
         $audioConfig->setAudioEncoding(AudioEncoding::MP3);
 
         $response = $client->synthesizeSpeech($input, $voice, $audioConfig);

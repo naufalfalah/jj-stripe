@@ -8,13 +8,16 @@ use GuzzleHttp\Exception\RequestException;
 class WhatsappService
 {
     protected $client;
+
     protected $baseUrl;
+
     protected $apiKey;
+
     protected $phoneNumber;
 
     public function __construct()
     {
-        $this->client = new Client();
+        $this->client = new Client;
         $this->baseUrl = 'https://api.p.2chat.io/open/whatsapp';
         $this->apiKey = config('services.2chat.api_key');
         $this->phoneNumber = config('services.2chat.phone_number');
@@ -188,7 +191,6 @@ class WhatsappService
     /**
      * Handle Guzzle exceptions and return a formatted error response.
      *
-     * @param RequestException $e
      * @return array
      */
     protected function handleException(RequestException $e)

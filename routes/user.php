@@ -37,7 +37,7 @@ Route::prefix('client')
                 Route::get('/file/{id}/{client_id}', 'client_file_view')->name('client.file_view');
                 Route::get('/file-view/{id}', 'file_view')->name('file_view');
             });
-            
+
         Route::controller(StripeController::class)
             ->prefix('stripe')
             ->as('stripe.')

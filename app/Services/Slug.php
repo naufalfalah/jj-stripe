@@ -5,9 +5,9 @@ namespace App\Services;
 class Slug
 {
     /**
-     * @param $title
      * @param int $id
      * @return string
+     *
      * @throws \Exception
      */
     public function createSlug($table, $title, $id = 0)
@@ -26,7 +26,7 @@ class Slug
 
         // Just append numbers like a savage until we find not used.
         for ($i = 1; $i <= 100; $i++) {
-            $newSlug = $slug . '-' . $i;
+            $newSlug = $slug.'-'.$i;
             if (!$allSlugs->contains('slug', $newSlug)) {
                 return $newSlug;
             }
@@ -37,7 +37,7 @@ class Slug
 
     protected function getRelatedSlugs($table, $slug, $id = 0)
     {
-        return \DB::table($table)->select('slug')->where('slug', 'like', $slug . '%')
+        return \DB::table($table)->select('slug')->where('slug', 'like', $slug.'%')
             ->where('id', '<>', $id)
             ->get();
     }

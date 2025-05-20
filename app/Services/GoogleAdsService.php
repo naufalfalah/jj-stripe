@@ -12,6 +12,7 @@ class GoogleAdsService
     use GoogleTrait;
 
     protected $baseUrl = 'https://googleads.googleapis.com/v16';
+
     protected $client;
 
     public function __construct($access_token = null)
@@ -35,7 +36,7 @@ class GoogleAdsService
                 'Authorization' => "Bearer $accessToken",
                 'Content-Type' => 'application/json',
                 'developer-token' => config('services.google.developer_token'),
-            ]
+            ],
         ]);
     }
 
@@ -46,8 +47,8 @@ class GoogleAdsService
             $refreshToken = $admin->google_refresh_token;
             $clientId = config('services.google.client_id');
             $clientSecret = config('services.google.client_secret');
-    
-            $client = new Client();
+
+            $client = new Client;
             $response = $client->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => $clientId,
@@ -56,7 +57,7 @@ class GoogleAdsService
                     'refresh_token' => $refreshToken,
                 ],
             ]);
-    
+
             $newTokenData = json_decode($response->getBody(), true);
             $admin->google_access_token = json_encode($newTokenData);
             $admin->save();
@@ -71,7 +72,7 @@ class GoogleAdsService
             $response = $this->client->{$method}($url, $options);
         } catch (RequestException $e) {
             $statusCode = $e->getResponse()->getStatusCode();
-    
+
             if ($statusCode == 400) {
                 $response = $e->getResponse();
             } elseif ($statusCode == 401) {
@@ -84,7 +85,7 @@ class GoogleAdsService
         }
 
         $response = json_decode($response->getBody(), true);
-        
+
         if (isset($response['error'])) {
             if (isset($response['error']['status'])) {
                 return [
@@ -92,6 +93,7 @@ class GoogleAdsService
                 ];
             }
             $errorCode = $response['error']['details'][0]['errors'][0]['errorCode'];
+
             return [
                 'errors' => $errorCode,
             ];
@@ -103,7 +105,7 @@ class GoogleAdsService
     public function getCustomers()
     {
         $response = $this->handleRequest('get', "$this->baseUrl/customers:listAccessibleCustomers");
-        
+
         return $response;
     }
 
@@ -111,8 +113,8 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => 'SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.manager, customer.status FROM customer_client'
-            ]
+                'query' => 'SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.manager, customer.status FROM customer_client',
+            ],
         ]);
 
         return $response;
@@ -128,7 +130,7 @@ class GoogleAdsService
                             'name' => $requestBody['campaign_name'],
                             'amountMicros' => $requestBody['campaign_budget_amount'],
                             'deliveryMethod' => 'STANDARD',
-                            'explicitlyShared' => false
+                            'explicitlyShared' => false,
                         ],
                     ],
                 ],
@@ -145,7 +147,7 @@ class GoogleAdsService
     public function updateCampaignBudget($customerId, $campaignBudgetResourceName, $requestBody = null)
     {
         $updateMask = implode(',', array_keys($requestBody));
-        
+
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/campaignBudgets:mutate", [
             'json' => [
                 'operations' => [
@@ -160,7 +162,7 @@ class GoogleAdsService
                 ],
             ],
         ]);
-    
+
         if (isset($response['errors'])) {
             return $response;
         }
@@ -172,8 +174,8 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => "SELECT campaign.id, campaign.name, campaign.start_date, campaign.end_date, campaign.target_roas.target_roas, campaign_budget.amount_micros, campaign.status, metrics.clicks, metrics.impressions, metrics.ctr, metrics.conversions, metrics.cost_micros FROM campaign WHERE campaign.status != 'REMOVED'"
-            ]
+                'query' => "SELECT campaign.id, campaign.name, campaign.start_date, campaign.end_date, campaign.target_roas.target_roas, campaign_budget.amount_micros, campaign.status, metrics.clicks, metrics.impressions, metrics.ctr, metrics.conversions, metrics.cost_micros FROM campaign WHERE campaign.status != 'REMOVED'",
+            ],
         ]);
 
         return $response;
@@ -183,8 +185,8 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => "SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.status NOT IN ('REMOVED', 'PAUSED')"
-            ]
+                'query' => "SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.status NOT IN ('REMOVED', 'PAUSED')",
+            ],
         ]);
 
         return $response;
@@ -194,14 +196,14 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => "SELECT campaign.id, campaign.name, campaign.status, campaign.start_date, campaign.end_date, campaign.advertising_channel_type, campaign_budget.amount_micros, metrics.cost_micros FROM campaign WHERE campaign.resource_name = '$campaignResourceName'"
+                'query' => "SELECT campaign.id, campaign.name, campaign.status, campaign.start_date, campaign.end_date, campaign.advertising_channel_type, campaign_budget.amount_micros, metrics.cost_micros FROM campaign WHERE campaign.resource_name = '$campaignResourceName'",
             ],
         ]);
 
         if (isset($response['errors'])) {
             return $response;
         }
-        
+
         return $response['results'][0];
     }
 
@@ -218,7 +220,7 @@ class GoogleAdsService
                         // 'advertisingChannelSubType' => 'LEAD_FORM',
                         'biddingStrategyType' => 'MAXIMIZE_CONVERSIONS',
                         'maximizeConversions' => [
-                            'targetCpaMicros' => 0 * 1000000 // 1:1000000,
+                            'targetCpaMicros' => 0 * 1000000, // 1:1000000,
                         ],
                         'startDate' => $requestBody['start_date'],
                         'endDate' => $requestBody['end_date'],
@@ -233,7 +235,7 @@ class GoogleAdsService
                                 [
                                     'targetingDimension' => 'AUDIENCE',
                                     'bidOnly' => false,
-                                ]
+                                ],
                             ],
                         ],
                     ],
@@ -250,7 +252,7 @@ class GoogleAdsService
                         // 'advertisingChannelSubType' => 'LEAD_FORM',
                         'biddingStrategyType' => 'MAXIMIZE_CONVERSIONS',
                         'maximizeConversions' => [
-                            'targetCpaMicros' => 0 * 1000000 // 1 dollar,
+                            'targetCpaMicros' => 0 * 1000000, // 1 dollar,
                         ],
                         'startDate' => $requestBody['start_date'],
                         'endDate' => $requestBody['end_date'],
@@ -265,7 +267,7 @@ class GoogleAdsService
                                 [
                                     'targetingDimension' => 'AUDIENCE',
                                     'bidOnly' => false,
-                                ]
+                                ],
                             ],
                         ],
                     ],
@@ -288,7 +290,7 @@ class GoogleAdsService
     public function updateCampaign($customerId, $campaignResourceName, $requestBody = null)
     {
         $updateMask = implode(',', array_keys($requestBody));
-        
+
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/campaigns:mutate", [
             'json' => [
                 'operations' => [
@@ -305,7 +307,7 @@ class GoogleAdsService
                 ],
             ],
         ]);
-    
+
         if (isset($response['errors'])) {
             return $response;
         }
@@ -325,8 +327,8 @@ class GoogleAdsService
                             'location' => [
                                 'geoTargetConstant' => $location,
                             ],
-                        ]
-                    ]
+                        ],
+                    ],
                 ]);
             }
         }
@@ -339,8 +341,8 @@ class GoogleAdsService
                         'language' => [
                             'languageConstant' => $requestBody['language'],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ]);
         }
 
@@ -361,7 +363,7 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => "SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group WHERE ad_group.status != 'PAUSED'"
+                'query' => "SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group WHERE ad_group.status != 'PAUSED'",
             ],
         ]);
 
@@ -372,7 +374,7 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => "SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group WHERE ad_group.resource_name = '$adGroupResourceName'"
+                'query' => "SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.conversions FROM ad_group WHERE ad_group.resource_name = '$adGroupResourceName'",
             ],
         ]);
 
@@ -417,18 +419,18 @@ class GoogleAdsService
                         'adGroup' => $adGroupResourceName,
                         'keyword' => [
                             'text' => $keyword['text'],
-                            'matchType' => $keyword['match_type']
+                            'matchType' => $keyword['match_type'],
                         ],
                         'status' => 'ENABLED',
-                    ]
-                ]
+                    ],
+                ],
             ]);
         }
 
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/adGroupCriteria:mutate", [
             'json' => [
                 'operations' => $operations,
-            ]
+            ],
         ]);
 
         return $response;
@@ -438,7 +440,7 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/$customerId/googleAds:search", [
             'json' => [
-                'query' => 'SELECT campaign.id, campaign.name, campaign.advertising_channel_type, ad_group.id, ad_group.name, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.ad.final_urls, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.average_cpm, metrics.conversions FROM ad_group_ad'
+                'query' => 'SELECT campaign.id, campaign.name, campaign.advertising_channel_type, ad_group.id, ad_group.name, ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.ad.final_urls, ad_group_ad.status, metrics.impressions, metrics.clicks, metrics.ctr, metrics.cost_micros, metrics.average_cpc, metrics.average_cpm, metrics.conversions FROM ad_group_ad',
             ],
         ]);
 
@@ -478,7 +480,7 @@ class GoogleAdsService
                 FROM 
                 ad_group_ad 
                 WHERE 
-                ad_group_ad.resource_name = '$adResourceName'"
+                ad_group_ad.resource_name = '$adResourceName'",
             ],
         ]);
 
@@ -518,7 +520,7 @@ class GoogleAdsService
                             'status' => 'ENABLED',
                             'ad' => [
                                 'finalUrls' => [
-                                    $requestBody['ad_url']
+                                    $requestBody['ad_url'],
                                 ],
                                 'responsiveSearchAd' => [
                                     'path1' => $requestBody['ad_url_1'],
@@ -544,7 +546,7 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/googleAds:search", [
             'json' => [
-                'query' => "SELECT conversion_action.resource_name, conversion_action.id, conversion_action.name, conversion_action.status, conversion_action.type, conversion_action.category FROM conversion_action WHERE conversion_action.status != 'REMOVED'"
+                'query' => "SELECT conversion_action.resource_name, conversion_action.id, conversion_action.name, conversion_action.status, conversion_action.type, conversion_action.category FROM conversion_action WHERE conversion_action.status != 'REMOVED'",
             ],
         ]);
 
@@ -571,16 +573,16 @@ class GoogleAdsService
                         // ],
                         'countingType' => $requestBody['counting_type'][$i],
                         'clickThroughLookbackWindowDays' => $requestBody['click_through_days'][$i],
-                        'viewThroughLookbackWindowDays' => $requestBody['view_through_days'][$i]
-                    ]
-                ]
+                        'viewThroughLookbackWindowDays' => $requestBody['view_through_days'][$i],
+                    ],
+                ],
             ]);
         }
 
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/conversionActions:mutate", [
             'json' => [
                 'operations' => $operations,
-            ]
+            ],
         ]);
 
         return $response;
@@ -590,7 +592,7 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/googleAds:search", [
             'json' => [
-                'query' => 'SELECT assets.id FROM assets'
+                'query' => 'SELECT assets.id FROM assets',
             ],
         ]);
 
@@ -616,8 +618,8 @@ class GoogleAdsService
                         'final_urls' => [
                             $requestBody['sitelinks'][$i + 1]['url'],
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ]);
         }
 
@@ -634,7 +636,7 @@ class GoogleAdsService
     {
         $response = $this->handleRequest('post', "$this->baseUrl/customers/{$customerId}/googleAds:search", [
             'json' => [
-                'query' => "SELECT geo_target_constant.resource_name, geo_target_constant.id, geo_target_constant.name, geo_target_constant.country_code FROM geo_target_constant WHERE geo_target_constant.status = 'ENABLED' AND geo_target_constant.country_code = 'SG'"
+                'query' => "SELECT geo_target_constant.resource_name, geo_target_constant.id, geo_target_constant.name, geo_target_constant.country_code FROM geo_target_constant WHERE geo_target_constant.status = 'ENABLED' AND geo_target_constant.country_code = 'SG'",
             ],
         ]);
 

@@ -12,6 +12,7 @@ class GoogleAdsService
     use GoogleTrait;
 
     protected $baseUrl = 'https://tagmanager.googleapis.com/v2';
+
     protected $client;
 
     public function __construct()
@@ -30,7 +31,7 @@ class GoogleAdsService
             'headers' => [
                 'Authorization' => "Bearer $accessToken",
                 'Content-Type' => 'application/json',
-            ]
+            ],
         ]);
     }
 
@@ -42,7 +43,7 @@ class GoogleAdsService
             $clientId = config('services.google.client_id');
             $clientSecret = config('services.google.client_secret');
 
-            $client = new Client();
+            $client = new Client;
             $response = $client->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => $clientId,
@@ -66,7 +67,7 @@ class GoogleAdsService
             $response = $this->client->{$method}($url, $options);
         } catch (RequestException $e) {
             $statusCode = $e->getResponse()->getStatusCode();
-    
+
             if ($statusCode == 400) {
                 $response = $e->getResponse();
             } elseif ($statusCode == 401) {
@@ -83,6 +84,7 @@ class GoogleAdsService
 
         if (isset($response['error'])) {
             $errorCode = $response['error']['details'][0]['errors'][0]['errorCode'];
+
             return [
                 'errors' => $errorCode,
             ];
@@ -94,14 +96,14 @@ class GoogleAdsService
     public function listAccounts()
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts");
-        
+
         return $response;
     }
 
     public function getAccount($accountId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}");
-        
+
         return $response;
     }
 
@@ -113,21 +115,21 @@ class GoogleAdsService
                 'shareData' => true,
             ],
         ]);
-        
+
         return $response;
     }
 
     public function listUserPermissions($accountId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}");
-        
+
         return $response;
     }
 
     public function listContainers($accountId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}");
-        
+
         return $response;
     }
 
@@ -146,49 +148,49 @@ class GoogleAdsService
     public function listWorkspaces($accountId, $containerId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces");
-        
+
         return $response;
     }
 
     public function listEnvironments($accountId, $containerId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/environments");
-        
+
         return $response;
     }
 
     public function listBuiltInVariables($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/built_in_variables");
-        
+
         return $response;
     }
 
     public function listClients($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/clients");
-        
+
         return $response;
     }
 
     public function listFolders($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/folders");
-        
+
         return $response;
     }
 
     public function listGtagConfigs($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/gtag_config");
-        
+
         return $response;
     }
 
     public function listTags($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/tags");
-        
+
         return $response;
     }
 
@@ -202,17 +204,17 @@ class GoogleAdsService
                     [
                         'key' => 'conversionId',
                         'type' => 'template',
-                        'value' => $requestBody['conversion_id']
+                        'value' => $requestBody['conversion_id'],
                     ],
                     [
                         'key' => 'conversionLabel',
                         'type' => 'template',
-                        'value' => $requestBody['conversion_label']
-                    ]
+                        'value' => $requestBody['conversion_label'],
+                    ],
                 ],
                 'firingTriggerId' => [
-                    $requestBody['trigger_id']
-                ]
+                    $requestBody['trigger_id'],
+                ],
             ],
         ]);
 
@@ -222,21 +224,21 @@ class GoogleAdsService
     public function listTemplates($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/templates");
-        
+
         return $response;
     }
 
     public function listTransformations($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/transformations");
-        
+
         return $response;
     }
 
     public function listTriggers($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/triggers");
-        
+
         return $response;
     }
 
@@ -246,7 +248,7 @@ class GoogleAdsService
             'json' => [
                 'name' => $requestBody['name'],
                 'type' => 'PAGEVIEW',
-                'filter' => []
+                'filter' => [],
             ],
         ]);
 
@@ -256,14 +258,14 @@ class GoogleAdsService
     public function listVariables($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/variables");
-        
+
         return $response;
     }
 
     public function listZones($accountId, $containerId, $workspaceId)
     {
         $response = $this->handleRequest('get', "$this->baseUrl/accounts/{$accountId}/containers/{$containerId}/workspaces/{$workspaceId}/zones");
-        
+
         return $response;
     }
 }

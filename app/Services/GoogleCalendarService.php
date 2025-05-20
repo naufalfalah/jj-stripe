@@ -12,7 +12,9 @@ class GoogleCalendarService
     use GoogleTrait;
 
     protected $baseUrl = 'https://www.googleapis.com/calendar/v3';
+
     protected $client;
+
     protected $timeZone = 'Asia/Singapore';
 
     public function __construct($access_token = null)
@@ -36,7 +38,7 @@ class GoogleCalendarService
                 'Authorization' => "Bearer $accessToken",
                 'Content-Type' => 'application/json',
                 // 'developer-token' => config('services.google.developer_token'),
-            ]
+            ],
         ]);
     }
 
@@ -47,8 +49,8 @@ class GoogleCalendarService
             $refreshToken = $admin->google_refresh_token;
             $clientId = config('services.google.client_id');
             $clientSecret = config('services.google.client_secret');
-    
-            $client = new Client();
+
+            $client = new Client;
             $response = $client->post('https://oauth2.googleapis.com/token', [
                 'form_params' => [
                     'client_id' => $clientId,
@@ -57,7 +59,7 @@ class GoogleCalendarService
                     'refresh_token' => $refreshToken,
                 ],
             ]);
-    
+
             $newTokenData = json_decode($response->getBody(), true);
             $admin->google_access_token = json_encode($newTokenData);
             $admin->save();
@@ -72,7 +74,7 @@ class GoogleCalendarService
             $response = $this->client->{$method}($url, $options);
         } catch (RequestException $e) {
             $statusCode = $e->getResponse()->getStatusCode();
-    
+
             if ($statusCode == 400) {
                 $response = $e->getResponse();
             } elseif ($statusCode == 401) {
@@ -85,7 +87,7 @@ class GoogleCalendarService
         }
 
         $response = json_decode($response->getBody(), true);
-        
+
         if (isset($response['error'])) {
             if (isset($response['error']['status'])) {
                 return [
@@ -93,6 +95,7 @@ class GoogleCalendarService
                 ];
             }
             $errorCode = $response['error']['details'][0]['errors'][0]['errorCode'];
+
             return [
                 'errors' => $errorCode,
             ];
@@ -146,7 +149,7 @@ class GoogleCalendarService
                 'timeMax' => $timeMax,
                 'maxResults' => 30,
                 'singleEvents' => 'true',
-                'orderBy' => 'startTime'
+                'orderBy' => 'startTime',
             ],
         ]);
 
