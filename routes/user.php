@@ -271,6 +271,7 @@ Route::middleware(['client', 'XSS'])
             ->prefix('package')
             ->as('package.')
             ->group(function () {
+                Route::get('/', 'index')->name('index');
                 Route::post('/', 'buy')->name('buy');
             });
 

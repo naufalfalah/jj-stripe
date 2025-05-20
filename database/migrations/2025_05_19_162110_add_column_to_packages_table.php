@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('logo')->nullable()->after('url');
             $table->integer('duration')->nullable()->after('logo');
             $table->string('status')->default('active')->after('duration');
-            $table->string('stripe_product_id')->nullable()->after('status');
+            $table->string('stripe_price_id')->nullable()->after('status');
         });
     }
 

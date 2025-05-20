@@ -14,7 +14,7 @@ class StripePaymentController extends Controller
     {
         $this->stripeService = $stripeService;
     }
-    
+
     public function createPaymentIntent(Request $request)
     {
         $request->validate([
@@ -24,6 +24,31 @@ class StripePaymentController extends Controller
         ]);
 
         $paymentIntent = $this->stripeService->createPaymentIntent($request->amount, $request->currency, $request->customer_id);
+
+        return response()->json($paymentIntent);
+    }
+
+    public function confirmPaymentIntent(Request $request, $paymentIntentId)
+    {
+        $request->validate([
+            'payment_method' => 'required|string',
+        ]);
+
+        $paymentIntent = $this->stripeService->confirmPaymentIntent($paymentIntentId, $request->payment_method);
+
+        return response()->json($paymentIntent);
+    }
+
+    public function getPaymentIntent(Request $request, $paymentIntentId)
+    {
+        $paymentIntent = $this->stripeService->getPaymentIntent($paymentIntentId);
+
+        return response()->json($paymentIntent);
+    }
+
+    public function cancelPaymentIntent(Request $request, $paymentIntentId)
+    {
+        $paymentIntent = $this->stripeService->cancelPaymentIntent($paymentIntentId);
 
         return response()->json($paymentIntent);
     }

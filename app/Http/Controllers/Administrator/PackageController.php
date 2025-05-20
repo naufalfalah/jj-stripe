@@ -4,13 +4,21 @@ namespace App\Http\Controllers\Administrator;
 
 use App\Constants\MenuConstant;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\PackageRequest;
+use App\Services\StripeService;
 use App\Traits\PackageTrait;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PackageController extends Controller
 {
     use PackageTrait;
+
+    protected $stripeService;
+
+    public function __construct(StripeService $stripeService)
+    {
+        $this->stripeService = $stripeService;
+    }
 
     public function index()
     {
@@ -29,10 +37,20 @@ class PackageController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(PackageRequest $request)
     {
-        if (Auth::user('admin')->can('package-write') != true) {
-            abort(403, 'Unauthorized action.');
+        $price = $this->stripeService->createPrice('prod_SL2R12wic4JMyW', $request->price, 'sgd');
+        if (!$price) {
+            return response()->json(['error' => 'Failed to create price'], 500);
+        }
+
+        $request->merge([
+            'stripe_price_id' => $price->id,
+        ]);
+
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('logos', 'public');
+            $request->merge(['logo' => $logoPath]);
         }
 
         $this->storePackage($request);
@@ -45,7 +63,6 @@ class PackageController extends Controller
 
     public function edit($id)
     {
-
         if (Auth::user('admin')->can('package-update') != true) {
             abort(403, 'Unauthorized action.');
         }

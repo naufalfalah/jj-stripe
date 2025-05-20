@@ -11,7 +11,7 @@
                             <h5 class="mb-0">{{ isset($edit) ? "Edit Package" : 'Add Package' }}</h5>
                         </div>
                         <hr/>
-                        <form method="POST" action="{{ route('admin.package.store') }}"
+                        <form method="POST" action="{{ route('admin.package.store') }}" enctype="multipart/form-data" id="packageForm"
                             class="row g-3 ajaxForm">
                             @csrf
                             <div class="col-md-6">
@@ -31,20 +31,15 @@
                                 <input type="text" name="description" id="description" value="{{ $edit->description ?? '' }}" placeholder="Enter Package Description" class="form-control" required>
                             </div>
                             <div class="col-md-12">
-                                <label for="menus">Menus<span class="text-danger">*</span></label>
-                                <div class="form-check">
-                                    @foreach($menus as $key => $menu)
-                                        <div>
-                                            <input 
-                                                type="checkbox" 
-                                                name="menus[]" 
-                                                value="{{ $key }}" 
-                                                id="menu_{{ $key }}"
-                                                {{ isset($edit) && in_array($key, $edit->getMenus() ?? []) ? 'checked' : '' }}>
-                                            <label for="menu_{{ $key }}">{{ $menu['label'] }}</label>
-                                        </div>
-                                    @endforeach
-                                </div>
+                                <label for="logo">Logo</label>
+                                <input type="file" name="logo" id="logo" class="form-control">
+                                @if(isset($edit) && $edit->logo)
+                                    <img src="{{ asset($edit->logo) }}" alt="" width="100px">
+                                @endif
+                            </div>
+                            <div class="col-md-6">
+                                <label for="duration">Duration<span class="text-danger">*</span></label>
+                                <input type="text" name="duration" id="duration" value="{{ $edit->duration ?? '' }}" placeholder="Enter Package Duration" class="form-control" required>
                             </div>
                             <div class="form-group mb-3 text-right">
                                 <input type="hidden" name="id" value="{{ $edit->id ?? null }}">
@@ -76,6 +71,12 @@
                                         Description</th>
                                     <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
                                         Price</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
+                                        Duration</th>
+                                    {{-- <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
+                                        Status</th> --}}
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
+                                        Stripe Price</th>
                                     <th class="text-uppercase ps-2 text-secondary text-xxs font-weight-bolder opacity-7">
                                         Action</th>
                                 </tr>
@@ -94,6 +95,21 @@
                                         </td>
                                         <td>
                                             <p class="text-sm font-weight-bold mb-0">{{ $val->price }}</p>
+                                        </td>
+                                        <td>
+                                            <p class="text-sm font-weight-bold mb-0">{{ $val->duration }}</p>
+                                        </td>
+                                        {{-- <td>
+                                            <p class="text-sm font-weight-bold mb-0">
+                                                @if($val->status == 1)
+                                                    <span class="badge bg-success">Active</span>
+                                                @else
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                @endif
+                                            </p>
+                                        </td> --}}
+                                        <td>
+                                            <p class="text-sm font-weight-bold mb-0">{{ $val->stripe_price_id }}</p>
                                         </td>
                                         <td>
                                             <div class="table-actions d-flex align-items-center gap-3 fs-6">

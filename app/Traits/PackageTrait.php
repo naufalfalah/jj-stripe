@@ -2,7 +2,6 @@
 
 namespace App\Traits;
 
-use App\Http\Requests\PackageRequest;
 use App\Models\Ads;
 use App\Models\Package;
 use App\Models\PackageMenu;
@@ -26,7 +25,7 @@ trait PackageTrait
         return $packages;
     }
 
-    public function storePackage(PackageRequest $request)
+    public function storePackage(Request $request)
     {
         DB::beginTransaction();
 
@@ -49,6 +48,9 @@ trait PackageTrait
                     'description' => $request->description,
                     'price' => $request->price,
                     'url' => $request->url,
+                    'logo' => $request->hasFile('logo') ? uploadSingleFile($request->file('logo'), 'uploads/client/profile_images/', 'png,jpeg,jpg') : $request->logo,
+                    'duration' => $request->duration,
+                    'stripe_price_id' => $request->stripe_price_id,
                 ]
             );
 
@@ -56,15 +58,6 @@ trait PackageTrait
                 PackageMenu::where('package_id', $package->id)
                     ->delete();
             }
-
-            $menus = $validated['menus'];
-            foreach ($menus as $menu) {
-                PackageMenu::create([
-                    'package_id' => $package->id,
-                    'menu' => $menu,
-                ]);
-            }
-            // $package->menus()->sync($validated['menus']);
 
             DB::commit();
         } catch (\Exception $e) {

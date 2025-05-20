@@ -28,8 +28,8 @@ class PackageRequest extends FormRequest
             'price' => 'required|numeric',
             'url' => 'required|url',
             'description' => 'required|string',
-            'menus' => 'required|array',
-            'menus.*' => 'string',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'duration' => 'required|integer|min:1',
         ];
 
         return $rules;
