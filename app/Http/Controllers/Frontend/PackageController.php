@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\UserPaymentMethod;
 use App\Services\StripeService;
 use App\Traits\PackageTrait;
 use Illuminate\Http\Request;
@@ -25,9 +26,17 @@ class PackageController extends Controller
      */
     public function index()
     {
+        $userPaymentMethods = UserPaymentMethod::where('user_id', auth('web')->id())
+            ->where('is_active', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        $defaultPaymentMethod = $userPaymentMethods->firstWhere('is_default', true);
+        if (!$defaultPaymentMethod) {
+            $defaultPaymentMethod = $userPaymentMethods->first();
+        }
         $packages = $this->indexPackage();
 
-        return view('client.packages.index', compact('packages'));
+        return view('client.packages.index', compact('packages', 'userPaymentMethods', 'defaultPaymentMethod'));
     }
 
     public function buy(Request $request)

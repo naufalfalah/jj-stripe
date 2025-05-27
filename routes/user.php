@@ -19,6 +19,7 @@ use App\Http\Controllers\Frontend\PayNowPaymentController;
 use App\Http\Controllers\Frontend\StripeController;
 use App\Http\Controllers\Frontend\StripePaymentController;
 use App\Http\Controllers\Frontend\UserMessageTemplateController;
+use App\Http\Controllers\Frontend\UserPaymentMethodController;
 use App\Http\Controllers\Frontend\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -265,6 +266,16 @@ Route::middleware(['client', 'XSS'])
                 Route::post('/campaign_note_save', 'campaign_note_save')->name('campaign_note_save');
                 Route::get('/campaign_note_delete/{id}', 'campaign_note_delete')->name('campaign_note_delete');
                 Route::post('update_act_expiry_date', 'update_act_expiry_date')->name('update_act_expiry_date');
+            });
+
+        Route::controller(UserPaymentMethodController::class)
+            ->prefix('user-payment-method')
+            ->as('user-payment-method.')
+            ->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::put('/{id}', 'update')->name('update');
+                Route::delete('/{id}', 'destroy')->name('destroy');
             });
 
         Route::controller(PackageController::class)

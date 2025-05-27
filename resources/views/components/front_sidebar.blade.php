@@ -27,7 +27,7 @@
         <div>
             <li>
                 <a href="{{ route('user.dashboard') }}">
-                    <div class="parent-icon"><i class="bi bi-house-fill"></i></div>
+                    <div class="parent-icon"><i class="bi bi-house"></i></div>
                     <div class="menu-title">Dashboard</div>
                 </a>
             </li>
@@ -70,8 +70,15 @@
 
             <li>
                 <a href="{{ route('user.leads-management.all') }}">
-                    <div class="parent-icon"><i class="bi bi-person-lines-fill"></i></div>
+                    <div class="parent-icon"><i class="bi bi-person"></i></div>
                     <div class="menu-title">Lead Management</div>
+                </a>
+            </li>
+
+            <li>
+                <a href="{{ route('user.user-payment-method.index') }}">
+                    <div class="parent-icon"><i class="bi bi-credit-card"></i></div>
+                    <div class="menu-title">Payment Method</div>
                 </a>
             </li>
 
